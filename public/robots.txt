@@ -1,0 +1,3 @@
+# Alle Suchmaschinen und KI-Crawler sind ausdrücklich erlaubt
+User-agent: *
+Allow: /

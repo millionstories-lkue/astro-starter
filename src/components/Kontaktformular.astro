@@ -1,0 +1,117 @@
+---
+/**
+ * Barrierefreies Kontaktformular für den zentralen Formular-Hub
+ * (https://forms.millionstories.de/).
+ *
+ * Verwendung:
+ *   import Kontaktformular from '@/components/Kontaktformular.astro';
+ *   <Kontaktformular kundeId="muster-gmbh" />
+ *
+ * kundeId und formType müssen exakt mit dem Eintrag in der index.php
+ * des Hubs übereinstimmen. Für weitere Formulartypen (z. B. Bewerbung)
+ * diese Komponente kopieren und Felder anpassen.
+ */
+interface Props {
+  kundeId: string;
+  formType?: string;
+  datenschutzUrl?: string;
+  buttonText?: string;
+}
+
+const {
+  kundeId,
+  formType = 'kontakt',
+  datenschutzUrl = '/datenschutz',
+  buttonText = 'Nachricht senden',
+} = Astro.props;
+
+// Eindeutige IDs, falls mehrere Formulare auf einer Seite stehen
+const id = `formular-${formType}`;
+
+const feldKlassen =
+  'mt-1 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 ' +
+  'placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30';
+---
+
+<form
+  id={id}
+  class="relative space-y-5"
+  aria-label="Kontaktformular"
+  data-formhub
+  data-kunde-id={kundeId}
+  data-form-type={formType}
+>
+  <p class="text-sm text-slate-600">Pflichtfelder sind mit <span aria-hidden="true">*</span><span class="sr-only">Sternchen</span> markiert.</p>
+
+  <div>
+    <label for={`${id}-name`} class="block text-sm font-medium text-slate-800">
+      Name <span aria-hidden="true">*</span>
+    </label>
+    <input id={`${id}-name`} name="name" type="text" autocomplete="name" required class={feldKlassen} />
+  </div>
+
+  <div>
+    <label for={`${id}-email`} class="block text-sm font-medium text-slate-800">
+      E-Mail-Adresse <span aria-hidden="true">*</span>
+    </label>
+    <input id={`${id}-email`} name="email" type="email" autocomplete="email" required class={feldKlassen} />
+  </div>
+
+  <div>
+    <label for={`${id}-telefon`} class="block text-sm font-medium text-slate-800">
+      Telefon <span class="font-normal text-slate-500">(optional)</span>
+    </label>
+    <input id={`${id}-telefon`} name="telefon" type="tel" autocomplete="tel" class={feldKlassen} />
+  </div>
+
+  <div>
+    <label for={`${id}-nachricht`} class="block text-sm font-medium text-slate-800">
+      Ihre Nachricht <span aria-hidden="true">*</span>
+    </label>
+    <textarea id={`${id}-nachricht`} name="nachricht" rows="6" required class={feldKlassen}></textarea>
+  </div>
+
+  <div class="flex items-start gap-3">
+    <input
+      id={`${id}-datenschutz`}
+      name="datenschutz"
+      type="checkbox"
+      value="Zugestimmt"
+      required
+      class="mt-1 h-5 w-5 rounded border-slate-300 text-brand focus:ring-brand"
+    />
+    <label for={`${id}-datenschutz`} class="text-sm text-slate-700">
+      Ich habe die <a href={datenschutzUrl} class="font-medium text-brand underline underline-offset-2 hover:text-brand-dark">Datenschutzerklärung</a>
+      gelesen und bin mit der Verarbeitung meiner Angaben zur Beantwortung meiner Anfrage einverstanden. <span aria-hidden="true">*</span>
+    </label>
+  </div>
+
+  <!-- Honeypot: für Menschen unsichtbar, Bots füllen es aus. Nicht entfernen. -->
+  <div class="absolute -left-[9999px]" aria-hidden="true">
+    <label for={`${id}-hp`}>Bitte leer lassen</label>
+    <input type="text" id={`${id}-hp`} name="_honeypot" tabindex="-1" autocomplete="off" />
+  </div>
+
+  <button
+    type="submit"
+    class="inline-flex items-center justify-center rounded-lg bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-dark focus-visible:outline-offset-4 disabled:cursor-wait disabled:opacity-60"
+  >
+    {buttonText}
+  </button>
+
+  <p data-formhub-status role="status" aria-live="polite"></p>
+</form>
+
+<script>
+  import { verbindeFormular } from '@/lib/formhub-client.js';
+
+  // Verbindet alle Hub-Formulare der Seite (auch mehrere) genau einmal
+  document.querySelectorAll<HTMLFormElement>('form[data-formhub]').forEach((form) => {
+    if (form.dataset.formhubVerbunden) return;
+    form.dataset.formhubVerbunden = 'true';
+    verbindeFormular(form, {
+      kundeId: form.dataset.kundeId,
+      formType: form.dataset.formType,
+    });
+  });
+</script>
