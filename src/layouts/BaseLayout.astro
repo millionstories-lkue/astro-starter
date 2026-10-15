@@ -29,7 +29,15 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
   <meta property="og:url" content={Astro.url} />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
-  <meta property="og:image" content={new URL(image, Astro.url)} />
+  <meta property="og:image" content={new URL(image, Astro.site || Astro.url)} />
+  <meta property="og:locale" content="de_DE" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Sitemap für Suchmaschinen -->
+  <link rel="sitemap" href="/sitemap.xml" />
+
+  <!-- Seitenspezifische Ergänzungen im <head> (z. B. JSON-LD) -->
+  <slot name="head" />
 
   <!-- Robots & AI Crawlability -->
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
