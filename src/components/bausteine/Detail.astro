@@ -1,0 +1,167 @@
+---
+/**
+ * Detailseite eines Projekts, Beitrags oder Termins.
+ * Aussehen pro Kunde anpassbar (Aufbau, Reihenfolge, Gestaltung). Props bitte beibehalten.
+ * Fließtext kommt aus dem Feld „Inhalt“ im CMS.
+ */
+import '@/styles/bausteine.css';
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import Fotos from './Fotos.astro';
+import { baustein, datumDE, datumISO, zeitISO, type Eintrag } from '@/lib/bausteine';
+
+interface Props {
+  eintrag: Eintrag;
+  /** Vorheriger/nächster Eintrag (in der Reihenfolge der Übersicht) */
+  vorher?: Eintrag;
+  nachher?: Eintrag;
+}
+
+const { eintrag: e, vorher, nachher } = Astro.props;
+const b = baustein(e.baustein);
+const { Content } = await render(e.eintrag);
+const d = e.daten;
+const t = e.termin;
+
+// Titelbild nicht doppelt in den Fotos zeigen
+const fotos = e.fotos.filter((f) => f.src.src !== e.titelbild?.src);
+
+// Angaben im Kopf (nur ausgefüllte Felder)
+const angaben: { name: string; wert: string; link?: string }[] = [];
+if (e.baustein === 'portfolio') {
+  if (d.kunde) angaben.push({ name: 'Kunde', wert: d.kunde });
+  if (d.ort) angaben.push({ name: 'Ort', wert: d.ort });
+  if (d.leistungen) angaben.push({ name: 'Leistungen', wert: d.leistungen });
+  if (d.link) angaben.push({ name: 'Link', wert: d.link.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), link: d.link });
+}
+if (e.baustein === 'events' && t) {
+  if (d.online) angaben.push({ name: 'Ort', wert: 'Online' });
+  else if (d.ortName || d.adresse) angaben.push({ name: 'Ort', wert: [d.ortName, d.adresse].filter(Boolean).join(', ') });
+  if (d.preis) angaben.push({ name: 'Preis', wert: d.preis });
+}
+---
+
+<article class="mx-auto max-w-4xl px-6 py-12 sm:py-16">
+  <nav aria-label="Brotkrumen" class="text-sm text-slate-500">
+    <ol class="flex flex-wrap gap-2">
+      <li><a href="/" class="hover:text-brand">Startseite</a> <span aria-hidden="true">/</span></li>
+      <li><a href={b.url} class="hover:text-brand">{b.name}</a> <span aria-hidden="true">/</span></li>
+      <li aria-current="page">{e.titel}</li>
+    </ol>
+  </nav>
+
+  <header class="mt-6">
+    {
+      t && (
+        <p class="font-semibold text-brand-dark">
+          <time datetime={zeitISO(t.beginn, t.ganztaegig)}>{t.text}</time>
+        </p>
+      )
+    }
+    <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{e.titel}</h1>
+    {t?.abgesagt && <p class="mt-4 w-fit rounded bg-red-50 px-3 py-1 font-semibold text-red-800">Dieser Termin ist abgesagt.</p>}
+    {t?.vergangen && !t.abgesagt && <p class="mt-4 text-slate-500">Dieser Termin hat bereits stattgefunden.</p>}
+    {e.kurztext && <p class="mt-4 text-lg text-slate-600">{e.kurztext}</p>}
+
+    {
+      e.datum && e.baustein !== 'events' && (
+        <p class="mt-4 text-sm text-slate-500">
+          Veröffentlicht am <time datetime={datumISO(e.datum)}>{datumDE(e.datum)}</time>
+          {e.aktualisiert && datumISO(e.aktualisiert) !== datumISO(e.datum) && (
+            <>
+              {' '}
+              · aktualisiert am <time datetime={datumISO(e.aktualisiert)}>{datumDE(e.aktualisiert)}</time>
+            </>
+          )}
+          {d.autor && <> · von {d.autor}</>}
+        </p>
+      )
+    }
+
+    {
+      angaben.length > 0 && (
+        <dl class="mt-6 grid gap-x-8 gap-y-3 border-y border-slate-200 py-5 sm:grid-cols-2">
+          {angaben.map((a) => (
+            <div>
+              <dt class="text-sm text-slate-500">{a.name}</dt>
+              <dd class="font-medium text-slate-900">
+                {a.link ? (
+                  <a href={a.link} class="text-brand underline underline-offset-2 hover:text-brand-dark" rel="noopener" target="_blank">
+                    {a.wert}
+                  </a>
+                ) : (
+                  a.wert
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )
+    }
+
+    {
+      t && d.anmeldeLink && !t.vergangen && !t.abgesagt && (
+        <a href={d.anmeldeLink} rel="noopener" target="_blank" class="mt-6 inline-flex rounded-lg bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark">
+          Zur Anmeldung
+        </a>
+      )
+    }
+  </header>
+
+  {
+    e.titelbild && (
+      <Image
+        src={e.titelbild}
+        alt={e.titelbildAlt}
+        widths={[600, 1000, 1600]}
+        sizes="(min-width: 1024px) 896px, 100vw"
+        width={1600}
+        height={Math.round((1600 * e.titelbild.height) / e.titelbild.width)}
+        format="webp"
+        loading="eager"
+        fetchpriority="high"
+        class="mt-10 w-full rounded-xl"
+      />
+    )
+  }
+
+  <div class="inhalt mt-10 max-w-3xl text-slate-800">
+    <Content />
+  </div>
+
+  {
+    e.tags.length > 0 && (
+      <ul class="mt-10 flex flex-wrap gap-2" aria-label="Tags">
+        {e.tags.map((tag) => (
+          <li class="rounded-full bg-brand-light px-3 py-1 text-sm font-medium text-brand-dark">{tag}</li>
+        ))}
+      </ul>
+    )
+  }
+
+  <Fotos fotos={fotos} />
+
+  <nav aria-label={`Weitere ${b.name}`} class="mt-16 grid gap-4 border-t border-slate-200 pt-8 sm:grid-cols-2">
+    {
+      vorher ? (
+        <a href={vorher.url} class="group rounded-lg p-3 hover:bg-slate-50">
+          <span class="block text-sm text-slate-500">← Zurück</span>
+          <span class="font-semibold text-slate-900 group-hover:text-brand">{vorher.titel}</span>
+        </a>
+      ) : (
+        <span />
+      )
+    }
+    {
+      nachher && (
+        <a href={nachher.url} class="group rounded-lg p-3 text-right hover:bg-slate-50">
+          <span class="block text-sm text-slate-500">Weiter →</span>
+          <span class="font-semibold text-slate-900 group-hover:text-brand">{nachher.titel}</span>
+        </a>
+      )
+    }
+  </nav>
+  <p class="mt-6">
+    <a href={b.url} class="font-semibold text-brand hover:text-brand-dark">Alle {b.name} ansehen</a>
+  </p>
+</article>

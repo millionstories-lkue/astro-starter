@@ -1,0 +1,148 @@
+---
+/**
+ * Übersichtsseite eines Bausteins: Überschrift, Einleitung, optional Tag-Filter, Raster bzw. Terminliste.
+ * Aussehen pro Kunde anpassbar. Props bitte beibehalten.
+ */
+import '@/styles/bausteine.css';
+import Karte from './Karte.astro';
+import TerminKarte from './TerminKarte.astro';
+import { absaetze, baustein, tagKennung, tagListe, uebersichtTexte, type BausteinId, type Eintrag } from '@/lib/bausteine';
+
+interface Props {
+  id: BausteinId;
+  eintraege: Eintrag[];
+}
+
+const { id, eintraege } = Astro.props;
+const b = baustein(id);
+const texte = uebersichtTexte(id);
+
+// Filter nur mit Tags, die auch wirklich vergeben sind
+const benutzt = new Set(eintraege.flatMap((e) => e.tags));
+const filterTags = b.tagFilter ? tagListe(id).filter((t) => benutzt.has(t)) : [];
+
+const kommend = eintraege.filter((e) => e.termin && !e.termin.vergangen);
+const vergangen = eintraege.filter((e) => e.termin?.vergangen);
+---
+
+<div class="mx-auto max-w-6xl px-6 py-12 sm:py-16" data-baustein-uebersicht>
+  <nav aria-label="Brotkrumen" class="text-sm text-slate-500">
+    <ol class="flex flex-wrap gap-2">
+      <li><a href="/" class="hover:text-brand">Startseite</a> <span aria-hidden="true">/</span></li>
+      <li aria-current="page">{b.name}</li>
+    </ol>
+  </nav>
+
+  <header class="mt-6 max-w-3xl">
+    <h1 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{texte.titel}</h1>
+    {absaetze(texte.einleitung).map((a) => <p class="mt-4 text-lg text-slate-600">{a}</p>)}
+  </header>
+
+  {
+    filterTags.length > 1 && (
+      <div class="mt-8" data-tag-filter>
+        <p id={`filter-${id}`} class="sr-only">
+          Einträge nach Thema filtern
+        </p>
+        <div class="flex flex-wrap gap-2" role="group" aria-labelledby={`filter-${id}`}>
+          <button
+            type="button"
+            data-filter=""
+            aria-pressed="true"
+            class="rounded-full border border-brand px-4 py-2 text-sm font-medium aria-pressed:bg-brand aria-pressed:text-white"
+          >
+            Alle
+          </button>
+          {filterTags.map((t) => (
+            <button
+              type="button"
+              data-filter={tagKennung(t)}
+              aria-pressed="false"
+              class="rounded-full border border-brand px-4 py-2 text-sm font-medium aria-pressed:bg-brand aria-pressed:text-white"
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <p class="sr-only" role="status" aria-live="polite" data-filter-status />
+      </div>
+    )
+  }
+
+  {
+    id === 'events' ? (
+      <>
+        <section class="mt-10" aria-labelledby="kommende-termine" data-termine-kommend>
+          <h2 id="kommende-termine" class="text-xl font-semibold text-slate-900">
+            Kommende {b.name}
+          </h2>
+          <div class="mt-5 grid gap-4" data-liste>
+            {kommend.map((e) => (
+              <TerminKarte eintrag={e} stufe="h3" />
+            ))}
+          </div>
+          <p class="mt-5 text-slate-600" data-leer hidden={kommend.length > 0}>
+            {texte.leerText}
+          </p>
+        </section>
+        <section class="mt-14" aria-labelledby="vergangene-termine" data-termine-vergangen hidden={vergangen.length === 0}>
+          <h2 id="vergangene-termine" class="text-xl font-semibold text-slate-900">
+            Vergangene {b.name}
+          </h2>
+          <div class="mt-5 grid gap-4 opacity-80" data-liste>
+            {vergangen.map((e) => (
+              <TerminKarte eintrag={e} stufe="h3" />
+            ))}
+          </div>
+        </section>
+      </>
+    ) : eintraege.length > 0 ? (
+      <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-liste>
+        {eintraege.map((e, i) => (
+          <Karte eintrag={e} sofortLaden={i < 3} />
+        ))}
+      </div>
+    ) : (
+      <p class="mt-10 text-slate-600">{texte.leerText}</p>
+    )
+  }
+</div>
+
+<script>
+  // Termine, die seit dem letzten Build vorbei sind, nach „Vergangene“ verschieben
+  document.querySelectorAll<HTMLElement>('[data-baustein-uebersicht]').forEach((seite) => {
+    const kommend = seite.querySelector<HTMLElement>('[data-termine-kommend]');
+    const vergangen = seite.querySelector<HTMLElement>('[data-termine-vergangen]');
+    if (!kommend || !vergangen) return;
+    const zielListe = vergangen.querySelector('[data-liste]');
+    const jetzt = Date.now();
+    kommend.querySelectorAll<HTMLElement>('[data-termin]').forEach((termin) => {
+      if (Date.parse(termin.dataset.endetUm ?? '') < jetzt) {
+        zielListe?.prepend(termin);
+        vergangen.hidden = false;
+      }
+    });
+    const leer = kommend.querySelector<HTMLElement>('[data-leer]');
+    if (leer) leer.hidden = kommend.querySelectorAll('[data-termin]').length > 0;
+  });
+
+  // Tag-Filter
+  document.querySelectorAll<HTMLElement>('[data-tag-filter]').forEach((filter) => {
+    const seite = filter.closest('[data-baustein-uebersicht]');
+    const knoepfe = filter.querySelectorAll<HTMLButtonElement>('button[data-filter]');
+    const status = filter.querySelector<HTMLElement>('[data-filter-status]');
+    knoepfe.forEach((knopf) =>
+      knopf.addEventListener('click', () => {
+        const tag = knopf.dataset.filter ?? '';
+        knoepfe.forEach((k) => k.setAttribute('aria-pressed', String(k === knopf)));
+        let sichtbar = 0;
+        seite?.querySelectorAll<HTMLElement>('[data-liste] > [data-tags]').forEach((el) => {
+          const passt = !tag || (el.dataset.tags ?? '').split(' ').includes(tag);
+          el.hidden = !passt;
+          if (passt) sichtbar++;
+        });
+        if (status) status.textContent = `${sichtbar} ${sichtbar === 1 ? 'Eintrag' : 'Einträge'} angezeigt`;
+      }),
+    );
+  });
+</script>

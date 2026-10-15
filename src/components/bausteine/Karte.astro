@@ -1,0 +1,65 @@
+---
+/**
+ * Karte eines Projekts oder Blogbeitrags (Übersicht und Startseiten-Vorschau).
+ * Aussehen pro Kunde anpassbar. Props und Daten (Eintrag) bitte beibehalten.
+ */
+import { Image } from 'astro:assets';
+import { datumDE, datumISO, tagKennung, type Eintrag } from '@/lib/bausteine';
+
+interface Props {
+  eintrag: Eintrag;
+  /** Überschriften-Ebene passend zur Seite (Übersicht: h2, unter einer H2 auf der Startseite: h3) */
+  stufe?: 'h2' | 'h3';
+  /** Erste Karten oben auf der Seite sofort laden */
+  sofortLaden?: boolean;
+}
+
+const { eintrag: e, stufe = 'h2', sofortLaden = false } = Astro.props;
+const Ueberschrift = stufe;
+---
+
+<article
+  class="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:shadow-lg focus-within:ring-2 focus-within:ring-brand"
+  data-tags={e.tags.map(tagKennung).join(' ')}
+>
+  {
+    e.titelbild ? (
+      <Image
+        src={e.titelbild}
+        alt={e.titelbildAlt}
+        widths={[400, 800]}
+        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+        width={800}
+        height={600}
+        format="webp"
+        loading={sofortLaden ? 'eager' : 'lazy'}
+        class="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+      />
+    ) : (
+      <div class="aspect-[4/3] w-full bg-brand-light" aria-hidden="true" />
+    )
+  }
+  <div class="flex flex-1 flex-col gap-2 p-5">
+    {
+      e.baustein === 'blog' && e.datum && (
+        <p class="text-sm text-slate-500">
+          <time datetime={datumISO(e.datum)}>{datumDE(e.datum)}</time>
+        </p>
+      )
+    }
+    {e.baustein === 'portfolio' && e.daten.kunde && <p class="text-sm text-slate-500">{e.daten.kunde}</p>}
+    <Ueberschrift class="text-lg font-semibold leading-snug text-slate-900">
+      <a href={e.url} class="after:absolute after:inset-0 focus:outline-none">{e.titel}</a>
+    </Ueberschrift>
+    {e.kurztext && <p class="text-slate-600">{e.kurztext}</p>}
+    {
+      e.tags.length > 0 && (
+        <ul class="mt-auto flex flex-wrap gap-2 pt-2" aria-label="Tags">
+          {e.tags.map((t) => (
+            <li class="rounded-full bg-brand-light px-3 py-1 text-xs font-medium text-brand-dark">{t}</li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</article>

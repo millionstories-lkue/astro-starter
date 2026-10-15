@@ -1,0 +1,117 @@
+---
+/**
+ * Fotoraster mit Großansicht (Lightbox) – für die Fotos eines Projekts, Beitrags oder Termins.
+ * Bedienbar mit Maus, Touch (Wischen) und Tastatur (Pfeiltasten, Esc).
+ * Aussehen pro Kunde anpassbar.
+ */
+import { Image, getImage } from 'astro:assets';
+import type { Foto } from '@/lib/bausteine';
+
+interface Props {
+  fotos: Foto[];
+  ueberschrift?: string;
+}
+
+const { fotos, ueberschrift = 'Fotos' } = Astro.props;
+const gross = await Promise.all(fotos.map((f) => getImage({ src: f.src, width: Math.min(1800, f.src.width), format: 'webp' })));
+const id = `fotos-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+{
+  fotos.length > 0 && (
+    <section class="mt-14" aria-labelledby={`${id}-titel`} data-fotos>
+      <h2 id={`${id}-titel`} class="text-xl font-semibold text-slate-900">
+        {ueberschrift}
+      </h2>
+      <ul class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {fotos.map((f, i) => (
+          <li>
+            <button
+              type="button"
+              class="block w-full overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              data-foto={i}
+              data-gross={gross[i].src}
+              data-alt={f.alt}
+              aria-label={`Großansicht öffnen: ${f.alt}`}
+            >
+              <Image
+                src={f.src}
+                alt={f.alt}
+                widths={[300, 600]}
+                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                width={600}
+                height={600}
+                format="webp"
+                class="aspect-square w-full object-cover transition duration-300 hover:scale-[1.03]"
+              />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <dialog class="foto-dialog" aria-label="Großansicht">
+        <div class="flex h-full w-full flex-col">
+          <div class="flex items-center justify-between px-4 py-3 text-sm">
+            <span data-zaehler aria-live="polite" />
+            <button type="button" data-schliessen class="rounded px-3 py-2 text-2xl leading-none hover:bg-white/10" aria-label="Großansicht schließen">
+              ×
+            </button>
+          </div>
+          <div class="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-4 sm:px-16">
+            <img data-bild alt="" class="max-h-full max-w-full object-contain" decoding="async" />
+            <button type="button" data-zurueck class="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 px-4 py-3 text-2xl hover:bg-white/20" aria-label="Vorheriges Foto">
+              ‹
+            </button>
+            <button type="button" data-weiter class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 px-4 py-3 text-2xl hover:bg-white/20" aria-label="Nächstes Foto">
+              ›
+            </button>
+          </div>
+        </div>
+      </dialog>
+    </section>
+  )
+}
+
+<script>
+  // Großansicht. Das <img> zeigt ein bereits von Astro optimiertes Bild (webp) – kein Original.
+  document.querySelectorAll<HTMLElement>('[data-fotos]').forEach((bereich) => {
+    const knoepfe = [...bereich.querySelectorAll<HTMLButtonElement>('button[data-foto]')];
+    const dialog = bereich.querySelector('dialog');
+    const bild = dialog?.querySelector<HTMLImageElement>('[data-bild]');
+    const zaehler = dialog?.querySelector<HTMLElement>('[data-zaehler]');
+    if (!dialog || !bild || knoepfe.length === 0) return;
+    let index = 0;
+    let ausloeser: HTMLElement | null = null;
+
+    const zeige = (i: number) => {
+      index = (i + knoepfe.length) % knoepfe.length;
+      const k = knoepfe[index];
+      bild.src = k.dataset.gross ?? '';
+      bild.alt = k.dataset.alt ?? '';
+      if (zaehler) zaehler.textContent = `Foto ${index + 1} von ${knoepfe.length}`;
+    };
+
+    knoepfe.forEach((k, i) =>
+      k.addEventListener('click', () => {
+        ausloeser = k;
+        zeige(i);
+        dialog.showModal();
+      }),
+    );
+    dialog.querySelector('[data-schliessen]')?.addEventListener('click', () => dialog.close());
+    dialog.querySelector('[data-zurueck]')?.addEventListener('click', () => zeige(index - 1));
+    dialog.querySelector('[data-weiter]')?.addEventListener('click', () => zeige(index + 1));
+    dialog.addEventListener('keydown', (ev) => {
+      if (ev.key === 'ArrowLeft') zeige(index - 1);
+      if (ev.key === 'ArrowRight') zeige(index + 1);
+    });
+    dialog.addEventListener('close', () => ausloeser?.focus());
+
+    let startX = 0;
+    dialog.addEventListener('touchstart', (ev) => (startX = ev.touches[0].clientX), { passive: true });
+    dialog.addEventListener('touchend', (ev) => {
+      const dx = ev.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) > 50) zeige(index + (dx < 0 ? 1 : -1));
+    });
+  });
+</script>

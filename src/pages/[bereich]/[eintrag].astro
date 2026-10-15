@@ -1,0 +1,50 @@
+---
+/**
+ * Detailseiten der aktiven Bausteine (z. B. /portfolio/<projekt>/).
+ * Teil des Starter-Repos – nicht verändern. Aussehen: src/components/bausteine/Detail.astro
+ */
+import { getImage } from 'astro:assets';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import Detail from '@/components/bausteine/Detail.astro';
+import { projekt } from '@/projekt.config';
+import { aktiveBausteine, brotkrumenSchema, eintragSchema, getEintraege, type Eintrag } from '@/lib/bausteine';
+
+export async function getStaticPaths() {
+  const seiten = [];
+  for (const b of aktiveBausteine()) {
+    const eintraege = await getEintraege(b.id);
+    eintraege.forEach((eintrag, i) =>
+      seiten.push({
+        params: { bereich: b.pfad, eintrag: eintrag.slug },
+        props: { eintrag, vorher: eintraege[i - 1], nachher: eintraege[i + 1] },
+      }),
+    );
+  }
+  return seiten;
+}
+
+const { eintrag, vorher, nachher } = Astro.props as { eintrag: Eintrag; vorher?: Eintrag; nachher?: Eintrag };
+const site = Astro.site ?? Astro.url;
+
+// Vorschaubild für Social Media und Bilder für Schema.org
+const og = eintrag.titelbild ? await getImage({ src: eintrag.titelbild, width: 1200, height: 630, fit: 'cover', format: 'jpg' }) : undefined;
+const schemaBilder = await Promise.all(
+  [eintrag.titelbild, ...eintrag.fotos.slice(0, 5).map((f) => f.src)]
+    .filter((b, i, alle) => b && alle.findIndex((x) => x?.src === b.src) === i)
+    .map((b) => getImage({ src: b!, width: Math.min(1600, b!.width), format: 'webp' }).then((r) => r.src)),
+);
+const schema = [eintragSchema(eintrag, site, schemaBilder), brotkrumenSchema(eintrag.baustein, site, eintrag)];
+
+const titel = `${eintrag.titel} | ${projekt.firmenname}`;
+const beschreibung =
+  eintrag.kurztext ?? (eintrag.termin ? `${eintrag.termin.text}: ${eintrag.titel}` : `${eintrag.titel} – ${projekt.firmenname}`);
+---
+
+<BaseLayout title={titel} description={beschreibung} image={og?.src}>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(schema)} />
+  <Header slot="header" />
+  <Detail eintrag={eintrag} vorher={vorher} nachher={nachher} />
+  <Footer slot="footer" />
+</BaseLayout>

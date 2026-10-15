@@ -1,0 +1,29 @@
+---
+/**
+ * Übersichtsseiten der aktiven Bausteine (z. B. /portfolio/, /blog/, /termine/).
+ * Teil des Starter-Repos – nicht verändern. Aussehen: src/components/bausteine/Uebersicht.astro
+ * Ein- und ausschalten sowie Adresse: src/projekt.config.ts
+ */
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import Uebersicht from '@/components/bausteine/Uebersicht.astro';
+import { aktiveBausteine, brotkrumenSchema, getEintraege, uebersichtSchema, uebersichtTexte, type BausteinId } from '@/lib/bausteine';
+
+export function getStaticPaths() {
+  return aktiveBausteine().map((b) => ({ params: { bereich: b.pfad }, props: { id: b.id } }));
+}
+
+const { id } = Astro.props as { id: BausteinId };
+const site = Astro.site ?? Astro.url;
+const eintraege = await getEintraege(id);
+const texte = uebersichtTexte(id);
+const schema = [uebersichtSchema(id, site, eintraege), brotkrumenSchema(id, site)];
+---
+
+<BaseLayout title={texte.seoTitel!} description={texte.seoBeschreibung!}>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(schema)} />
+  <Header slot="header" />
+  <Uebersicht id={id} eintraege={eintraege} />
+  <Footer slot="footer" />
+</BaseLayout>

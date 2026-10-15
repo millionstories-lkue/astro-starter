@@ -1,32 +1,6 @@
 ---
-import BaseLayout from '@/layouts/BaseLayout.astro';
+// Text: src/data/rechtstexte/impressum.md (im CMS unter „Rechtstexte“). Diese Datei nicht verändern.
+import Rechtstext from '@/components/Rechtstext.astro';
 ---
 
-<BaseLayout title="Impressum | Kundenname" description="Impressum und Anbieterkennzeichnung.">
-  <article class="mx-auto max-w-3xl px-6 py-16">
-    <h1 class="text-3xl font-bold text-slate-900">Impressum</h1>
-
-    <!-- TODO pro Kunde: Angaben nach § 5 DDG vollständig eintragen -->
-    <h2 class="mt-10 text-xl font-semibold">Angaben gemäß § 5 DDG</h2>
-    <p class="mt-4 leading-relaxed">
-      [Firmenname]<br />
-      [Straße Hausnummer]<br />
-      [PLZ Ort]
-    </p>
-
-    <h2 class="mt-10 text-xl font-semibold">Kontakt</h2>
-    <p class="mt-4 leading-relaxed">
-      Telefon: [Telefonnummer]<br />
-      E-Mail: [E-Mail-Adresse]
-    </p>
-
-    <h2 class="mt-10 text-xl font-semibold">Vertreten durch</h2>
-    <p class="mt-4 leading-relaxed">[Geschäftsführung / Inhaber]</p>
-
-    <h2 class="mt-10 text-xl font-semibold">Registereintrag &amp; Umsatzsteuer</h2>
-    <p class="mt-4 leading-relaxed">
-      [Registergericht, Registernummer]<br />
-      [USt-IdNr.]
-    </p>
-  </article>
-</BaseLayout>
+<Rechtstext name="impressum" standardTitel="Impressum" />

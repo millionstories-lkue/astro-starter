@@ -1,0 +1,58 @@
+---
+/**
+ * Vorschau der neuesten Einträge eines Bausteins, z. B. auf der Startseite.
+ * Erscheint nur, wenn der Baustein aktiv ist und Einträge hat.
+ *
+ * Verwendung:
+ *   import NeuesteEintraege from '@/components/bausteine/NeuesteEintraege.astro';
+ *   <NeuesteEintraege baustein="blog" anzahl={3} ueberschrift="Aktuelles aus dem Blog" />
+ *   (Events zeigt die nächsten kommenden Termine.)
+ * Aussehen pro Kunde anpassbar.
+ */
+import Karte from './Karte.astro';
+import TerminKarte from './TerminKarte.astro';
+import { baustein, neuesteEintraege, type BausteinId } from '@/lib/bausteine';
+
+interface Props {
+  baustein: BausteinId;
+  anzahl?: number;
+  ueberschrift?: string;
+  einleitung?: string;
+}
+
+const { baustein: id, anzahl = 3, ueberschrift, einleitung } = Astro.props;
+const b = baustein(id);
+const eintraege = await neuesteEintraege(id, anzahl);
+const titelId = `neueste-${id}`;
+---
+
+{
+  eintraege.length > 0 && (
+    <section class="mx-auto max-w-6xl px-6 py-16" aria-labelledby={titelId}>
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div class="max-w-2xl">
+          <h2 id={titelId} class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            {ueberschrift ?? b.name}
+          </h2>
+          {einleitung && <p class="mt-3 text-slate-600">{einleitung}</p>}
+        </div>
+        <a href={b.url} class="font-semibold text-brand hover:text-brand-dark">
+          Alle {b.name} <span aria-hidden="true">→</span>
+        </a>
+      </div>
+      {id === 'events' ? (
+        <div class="mt-8 grid gap-4">
+          {eintraege.map((e) => (
+            <TerminKarte eintrag={e} stufe="h3" />
+          ))}
+        </div>
+      ) : (
+        <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {eintraege.map((e) => (
+            <Karte eintrag={e} stufe="h3" />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}

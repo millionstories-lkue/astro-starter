@@ -1,0 +1,42 @@
+---
+/**
+ * PLATZHALTER-Kopfbereich – wird pro Kunde durch den eigenen Header im Kundendesign ersetzt.
+ * Wird von den Starter-Seiten (Impressum, Datenschutz, 404, Bausteine) eingebunden,
+ * deshalb muss es diese Datei immer geben (Name und Ort beibehalten, keine Pflicht-Props).
+ *
+ * Aktive Bausteine (Portfolio, Blog, Events) automatisch in die Navigation aufnehmen:
+ *   import { aktiveBausteine } from '@/lib/bausteine';
+ *   aktiveBausteine().map((b) => <a href={b.url}>{b.name}</a>)
+ */
+import { projekt } from '@/projekt.config';
+import { aktiveBausteine } from '@/lib/bausteine';
+
+const aktuell = Astro.url.pathname;
+const links = [{ name: 'Start', url: '/' }, ...aktiveBausteine().map((b) => ({ name: b.name, url: b.url }))];
+---
+
+<header class="border-b border-slate-200">
+  <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5">
+    <a href="/" class="text-lg font-bold text-slate-900">{projekt.firmenname}</a>
+    <nav aria-label="Hauptnavigation">
+      <ul class="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
+        {
+          links.map((l) => {
+            const istAktuell = l.url === '/' ? aktuell === '/' : aktuell.startsWith(l.url);
+            return (
+              <li>
+                <a
+                  href={l.url}
+                  class:list={['hover:text-brand', istAktuell && 'text-brand underline underline-offset-4']}
+                  aria-current={istAktuell ? 'page' : undefined}
+                >
+                  {l.name}
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </nav>
+  </div>
+</header>

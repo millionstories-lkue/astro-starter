@@ -1,0 +1,39 @@
+---
+/**
+ * Seite für Impressum und Datenschutz. Der Text kommt aus src/data/rechtstexte/<name>.md
+ * (im CMS unter „Rechtstexte“ pflegbar). Teil des Starter-Repos – nicht verändern.
+ */
+import '@/styles/bausteine.css';
+import { getEntry, render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import { projekt } from '@/projekt.config';
+import { datumDE } from '@/lib/bausteine';
+
+interface Props {
+  name: 'impressum' | 'datenschutz';
+  standardTitel: string;
+}
+
+const { name, standardTitel } = Astro.props;
+const eintrag = await getEntry('rechtstexte', name);
+if (!eintrag) throw new Error(`Die Datei src/data/rechtstexte/${name}.md fehlt.`);
+const { Content } = await render(eintrag);
+const titel = eintrag.data.titel || standardTitel;
+---
+
+<BaseLayout
+  title={`${titel} | ${projekt.firmenname}`}
+  description={eintrag.data.beschreibung || `${titel} von ${projekt.firmenname}.`}
+>
+  <Header slot="header" />
+  <article class="mx-auto max-w-3xl px-6 py-16">
+    <h1 class="text-3xl font-bold text-slate-900">{titel}</h1>
+    <div class="inhalt mt-8 text-slate-800">
+      <Content />
+    </div>
+    {eintrag.data.stand && <p class="mt-12 text-sm text-slate-500">Stand: {datumDE(eintrag.data.stand)}</p>}
+  </article>
+  <Footer slot="footer" />
+</BaseLayout>

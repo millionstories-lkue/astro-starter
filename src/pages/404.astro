@@ -1,8 +1,13 @@
 ---
+// Fehlerseite. Diese Datei nicht verändern (Firmenname kommt aus src/projekt.config.ts).
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import { projekt } from '@/projekt.config';
 ---
 
-<BaseLayout title="Seite nicht gefunden | Kundenname" description="Die angeforderte Seite wurde nicht gefunden.">
+<BaseLayout title={`Seite nicht gefunden | ${projekt.firmenname}`} description="Die angeforderte Seite wurde nicht gefunden.">
+  <Header slot="header" />
   <section class="mx-auto max-w-2xl px-6 py-24 text-center">
     <p class="text-sm font-semibold uppercase tracking-wide text-brand">Fehler 404</p>
     <h1 class="mt-4 text-3xl font-bold text-slate-900">Diese Seite gibt es leider nicht</h1>
@@ -11,4 +16,5 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
       Zur Startseite
     </a>
   </section>
+  <Footer slot="footer" />
 </BaseLayout>
