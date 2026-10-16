@@ -36,13 +36,13 @@ const medien = Object.values(
 )[0];
 
 /**
- * Beschreibung (Alt-Text) eines CMS-Bildes: die am Bild eingetragene Beschreibung,
- * sonst die zentrale aus der Mediathek, sonst ''. Eigene Ersatztexte danach mit || anhängen:
+ * Beschreibung (Alt-Text) eines CMS-Bildes: die zentrale Beschreibung aus der Mediathek,
+ * sonst eine ältere, direkt am Bild gespeicherte Beschreibung, sonst ''. Eigene Ersatztexte
+ * danach mit || anhängen:
  *   alt={cmsAlt(bild, bildAlt) || `${titel} – Foto 1`}
  */
 export function cmsAlt(pfad?: string | null, alt?: string | null): string {
-  const eigen = alt?.trim();
-  if (eigen) return eigen;
   const p = cmsPfad(pfad)?.slice(1);
-  return (p && medien?.alt?.[p]?.trim()) || '';
+  const zentral = p ? medien?.alt?.[p]?.trim() : '';
+  return zentral || alt?.trim() || '';
 }

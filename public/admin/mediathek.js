@@ -9,8 +9,10 @@
  *   doppelte Komprimierung).
  * - zeigt bei jedem Bild, wo es verwendet wird; Löschen nur, wenn es nirgends mehr
  *   verwendet wird, mit Rückfrage „Endgültig löschen?“
- * - zentrale Bildbeschreibung (Alt-Text) pro Bild in src/data/medien.json. Die Website
- *   nutzt sie überall dort, wo am Bild selbst keine Beschreibung eingetragen ist.
+ * - zentrale Bildbeschreibung (Alt-Text) pro Bild in src/data/medien.json. Sie ist die
+ *   einzige Stelle für Beschreibungen und gilt überall, wo das Bild eingesetzt ist.
+ *   Beschreibungen aus der Zeit davor (direkt am Bild gespeichert) werden als Vorschlag
+ *   angezeigt und lassen sich mit einem Klick übernehmen.
  *
  * Eingebunden wird die Mediathek
  * - im Menü oben unter „Medien“,
@@ -434,17 +436,86 @@
       for (var n = 0; n < 6; n++) laeufer.push(naechster());
       return Promise.all(laeufer).then(function () {
         var verwendung = {};
+        var vorschlaege = {};
         baum.bilder.forEach(function (b) {
           var orte = [];
           ergebnisse.forEach(function (r) {
-            if (r.text.indexOf(b.pfad) >= 0) orte.push(ortName(r.pfad));
+            if (r.text.indexOf(b.pfad) < 0) return;
+            orte.push(ortName(r.pfad));
+            if (!vorschlaege[b.pfad]) {
+              var alt = altAusText(r.text, b.pfad, r.pfad);
+              if (alt) vorschlaege[b.pfad] = alt;
+            }
           });
           verwendung[b.pfad] = orte;
         });
-        return verwendung;
+        return { verwendung: verwendung, vorschlaege: vorschlaege };
       });
     });
   }
+  /**
+   * Bisherige Beschreibung eines Bildes aus einer Inhaltsdatei lesen (aus der Zeit, als
+   * Beschreibungen noch direkt am Bild gepflegt wurden): { bild, alt }, bild + bildAlt,
+   * titelbild + titelbildAlt. Dient nur als Vorschlag für die zentrale Beschreibung.
+   */
+  function altAusText(text, bildPfad, dateiPfad) {
+    var i = text.indexOf(bildPfad);
+    while (i >= 0) {
+      var alt = /\.json$/i.test(dateiPfad) ? altAusJson(text, i) : altAusYaml(text, i);
+      if (alt) return alt;
+      i = text.indexOf(bildPfad, i + bildPfad.length);
+    }
+    return '';
+  }
+  function altAusJson(text, pos) {
+    var start = text.lastIndexOf('{', pos);
+    var ende = text.indexOf('}', pos);
+    if (start < 0 || ende < 0) return '';
+    var m = text.slice(start, ende).match(/"(?:alt|[A-Za-z]*Alt)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (!m) return '';
+    try {
+      return JSON.parse('"' + m[1] + '"').trim();
+    } catch (e) {
+      return m[1].trim();
+    }
+  }
+  function altAusYaml(text, pos) {
+    var zeilen = text.split('\n');
+    var nr = text.slice(0, pos).split('\n').length - 1;
+    var bildZeile = zeilen[nr] || '';
+    var einzug = bildZeile.match(/^(\s*)(?:- )?/)[0].length;
+    var schluessel = (bildZeile.match(/^\s*(?:- )?([A-Za-z]+):/) || [])[1] || '';
+    for (var k = nr + 1; k < Math.min(zeilen.length, nr + 6); k++) {
+      var z = zeilen[k];
+      if (/^\s*- /.test(z) && z.match(/^\s*/)[0].length <= einzug) break;
+      var m = z.match(/^(\s*)(alt|[A-Za-z]*Alt):\s*(.*)$/);
+      if (!m) continue;
+      if (m[2] !== 'alt' && m[2] !== schluessel + 'Alt' && m[2] !== 'bildAlt') continue;
+      var wert = m[3];
+      var eigenerEinzug = m[1].length;
+      // Fortsetzungszeilen (lange Texte bricht das CMS um)
+      for (var f = k + 1; f < zeilen.length; f++) {
+        var naechste = zeilen[f];
+        var nEinzug = naechste.match(/^\s*/)[0].length;
+        var offen = /^"/.test(wert) ? !/^"(?:[^"\\]|\\.)*"\s*$/.test(wert) : /^'/.test(wert) ? !/^'(?:[^']|'')*'\s*$/.test(wert) : false;
+        if (!offen && (nEinzug <= eigenerEinzug || /^\s*(- |[\w-]+:\s)/.test(naechste) || !naechste.trim())) break;
+        if (!naechste.trim()) break;
+        wert += ' ' + naechste.trim();
+      }
+      wert = wert.trim();
+      if (/^".*"$/.test(wert)) {
+        try {
+          wert = JSON.parse(wert);
+        } catch (e) {
+          wert = wert.slice(1, -1);
+        }
+      } else if (/^'.*'$/.test(wert)) wert = wert.slice(1, -1).replace(/''/g, "'");
+      wert = String(wert).trim();
+      if (wert && wert !== '""' && wert !== "''") return wert;
+    }
+    return '';
+  }
+
   function ortName(pfad) {
     if (pfad.indexOf('src/data/') === 0) {
       return pfad
@@ -507,7 +578,7 @@
     '.mt-leiste input[type=search]{width:220px}.mt-leiste label.mt-check{display:flex;gap:6px;align-items:center;cursor:pointer}' +
     '.mt-ziel{font-size:12px;color:#798291;flex-basis:100%}' +
     '.mt-k{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 14px;border-radius:6px;border:0;font:inherit;font-weight:600;cursor:pointer;background:#dfe2e8;color:#313d3e}' +
-    '.mt-k:disabled{opacity:.5;cursor:not-allowed}.mt-k-blau{background:#3a69c7;color:#fff}.mt-k-rot{background:#c62828;color:#fff}' +
+    '.mt-k[hidden]{display:none}.mt-k:disabled{opacity:.5;cursor:not-allowed}.mt-k-blau{background:#3a69c7;color:#fff}.mt-k-rot{background:#c62828;color:#fff}' +
     '.mt-k:focus-visible,.mt-kachel:focus-visible,.mt-x:focus-visible{outline:3px solid #3a69c7;outline-offset:2px}' +
     '.mt-haupt{flex:1;display:flex;min-height:0}' +
     '.mt-raster{flex:1;overflow:auto;padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;align-content:start;grid-auto-rows:max-content}' +
@@ -615,6 +686,7 @@
     var knopfUebernehmen = auswahlModus ? el('button', { type: 'button', class: 'mt-k mt-k-blau', text: 'Übernehmen' }) : null;
     var knopfSchliessen = el('button', { type: 'button', class: 'mt-k', text: auswahlModus ? 'Abbrechen' : 'Schließen' });
     var knopfX = el('button', { type: 'button', class: 'mt-x', 'aria-label': 'Mediathek schließen', text: '×' });
+    var knopfUebernahme = el('button', { type: 'button', class: 'mt-k', hidden: true });
 
     var dialog = el('div', { class: 'mt-dialog', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt-titel' }, [
       el('div', { class: 'mt-kopf' }, [
@@ -635,6 +707,7 @@
         ordnerWahl,
         el('label', { class: 'mt-check' }, [nurFrei, 'Nur nicht verwendete']),
         el('label', { for: 'mt-datei', class: 'mt-k mt-k-blau', tabindex: '0', role: 'button' }, ['+ Bilder hochladen']),
+        knopfUebernahme,
         dateiEingabe,
         zielText,
       ]),
@@ -871,7 +944,8 @@
 
       if (optionen.altTexte) {
         var feld = el('textarea', { id: 'mt-alt', placeholder: 'Was ist auf dem Bild zu sehen?' });
-        feld.value = zentralerAlt(b.pfad);
+        var vorschlag = !zentralerAlt(b.pfad) && st.vorschlaege && st.vorschlaege[b.pfad];
+        feld.value = zentralerAlt(b.pfad) || vorschlag || '';
         var speichern = el('button', { type: 'button', class: 'mt-k mt-k-blau', text: 'Beschreibung speichern' });
         speichern.addEventListener('click', function () {
           speichereAlt(b.pfad, feld.value.trim(), speichern);
@@ -882,7 +956,9 @@
             feld,
             el('p', {
               class: 'mt-hinweis',
-              text: 'Gilt überall, wo das Bild eingesetzt ist. Steht direkt am Bild eine eigene Beschreibung, wird diese verwendet.',
+              text: vorschlag
+                ? 'Vorschlag aus der bisherigen Beschreibung im Eintrag – mit „Beschreibung speichern“ übernehmen. Gilt dann überall, wo das Bild eingesetzt ist.'
+                : 'Gilt überall auf der Website, wo das Bild eingesetzt ist.',
             }),
             speichern,
           ]),
@@ -915,7 +991,54 @@
       }
     }
 
+    function offeneVorschlaege() {
+      if (!optionen.altTexte || !st.vorschlaege || !st.baum) return [];
+      return st.baum.bilder
+        .map(function (b) {
+          return b.pfad;
+        })
+        .filter(function (p) {
+          return st.vorschlaege[p] && !zentralerAlt(p);
+        });
+    }
+
+    function zeichneUebernahme() {
+      var offen = offeneVorschlaege();
+      knopfUebernahme.hidden = !offen.length || st.laeuft;
+      knopfUebernahme.textContent = 'Bisherige Beschreibungen übernehmen (' + offen.length + ')';
+      knopfUebernahme.title = 'Beschreibungen, die bisher direkt an den Bildern in Seiten und Projekten standen, zentral in die Mediathek übernehmen';
+    }
+
+    knopfUebernahme.addEventListener('click', function () {
+      var offen = offeneVorschlaege();
+      if (!offen.length) return;
+      st.laeuft = true;
+      zeichneUebernahme();
+      zeichneFuss();
+      meldung(offen.length + ' Beschreibungen werden übernommen …');
+      ladeAlt()
+        .then(function (stand) {
+          offen.forEach(function (p) {
+            if (!stand.daten.alt[p]) stand.daten.alt[p] = st.vorschlaege[p];
+          });
+          return commit([{ pfad: ALT_DATEI, text: altJson(stand.daten) }], 'Bildbeschreibungen in die Mediathek übernommen (' + offen.length + ')');
+        })
+        .then(
+          function () {
+            st.laeuft = false;
+            alles();
+            meldung(offen.length + ' Beschreibungen übernommen. Ab jetzt pflegst du sie hier in der Mediathek.');
+          },
+          function (f) {
+            st.laeuft = false;
+            alles();
+            meldung('Übernehmen hat nicht geklappt. ' + f.message, true);
+          },
+        );
+    });
+
     function alles() {
+      zeichneUebernahme();
       zeichneLeiste();
       zeichneRaster();
       zeichneDetail();
@@ -1215,7 +1338,8 @@
         alles();
         meldung('Verwendung der Bilder wird geprüft …');
         return ladeVerwendung(st.baum).then(function (v) {
-          st.verwendung = v;
+          st.verwendung = v.verwendung;
+          st.vorschlaege = v.vorschlaege;
           alles();
           meldung(st.baum.bilder.length + (st.baum.bilder.length === 1 ? ' Bild' : ' Bilder') + ' in der Mediathek.');
         });

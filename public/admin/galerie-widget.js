@@ -6,7 +6,8 @@
  *   (mediathek.js) bleiben kleinere Bilder unverändert und PNG bleibt PNG
  * - „Aus Mediathek wählen“: vorhandene Bilder der Website übernehmen (mediathek.js)
  * - Reihenfolge per Ziehen ändern, einzelne Fotos entfernen
- * - Optional eine Beschreibung (Alt-Text) pro Foto
+ * - Beschreibungen (Alt-Texte) pflegt man zentral in der Mediathek; nur ohne Mediathek
+ *   gibt es hier eine Beschreibung pro Foto
  *
  * Gespeichert wird eine Liste aus { bild, alt }. Die Fotos landen im Ordner
  * <ordner>/<dateiname-des-eintrags>/ des GitHub-Repos (Standard-Ordner:
@@ -576,17 +577,21 @@
           window.MSMediathek
             ? h('button', { type: 'button', style: knopf2, disabled: s.laeuft, onClick: self.ausMediathek }, 'Aus Mediathek wählen')
             : null,
-          h(
-            'button',
-            {
-              type: 'button',
-              style: knopf2,
-              onClick: function () {
-                self.setState({ mitBeschreibung: !s.mitBeschreibung });
-              },
-            },
-            s.mitBeschreibung ? 'Beschreibungen ausblenden' : 'Beschreibungen bearbeiten',
-          ),
+          // Beschreibungen (Alt-Texte) werden zentral in der Mediathek gepflegt (mediathek.js).
+          // Ohne Mediathek bleibt die Beschreibung pro Foto hier bearbeitbar.
+          window.MSMediathek
+            ? null
+            : h(
+                'button',
+                {
+                  type: 'button',
+                  style: knopf2,
+                  onClick: function () {
+                    self.setState({ mitBeschreibung: !s.mitBeschreibung });
+                  },
+                },
+                s.mitBeschreibung ? 'Beschreibungen ausblenden' : 'Beschreibungen bearbeiten',
+              ),
           h('span', { style: { fontSize: '13px', color: '#798291' } }, liste.length + ' Fotos · Fotos auch einfach hierher ziehen · Reihenfolge per Ziehen ändern'),
         ),
         s.status ? h('p', { role: 'status', style: { margin: '0 0 10px', fontSize: '13px', color: '#005614' } }, s.status) : null,
