@@ -1,0 +1,105 @@
+---
+/**
+ * Häufige Fragen (Akkordeon) – für jede Seite verwendbar.
+ * Barrierefrei mit <details>/<summary> (Tastatur, ohne JavaScript) und mit
+ * Schema.org FAQPage für Google und KI-Suche (wird automatisch mit ausgegeben).
+ *
+ * Die Fragen gehören zu den Inhalten der jeweiligen Seite (kein eigener CMS-Bereich):
+ *   src/data/seiten/<seite>.json → "faq": { "eyebrow", "ueberschrift", "einleitung", "fragen": [{ "frage", "antwort" }] }
+ *
+ * Verwendung:
+ *   import Faq from '@/components/Faq.astro';
+ *   <Faq eyebrow={seite.faq?.eyebrow} title={seite.faq?.ueberschrift} intro={seite.faq?.einleitung} items={seite.faq?.fragen} />
+ *
+ * Aussehen pro Kunde anpassbar (Props, <details>-Aufbau und das JSON-LD bitte beibehalten).
+ * Ohne Fragen wird nichts ausgegeben. Pro Seite nur einmal verwenden (id="faq").
+ */
+interface Props {
+  eyebrow?: string | null;
+  title?: string | null;
+  intro?: string | null;
+  items?: { frage?: string | null; antwort?: string | null }[] | null;
+  id?: string;
+}
+
+const { eyebrow, title, intro, id = 'faq' } = Astro.props;
+const items = (Astro.props.items ?? [])
+  .map((f) => ({ frage: f.frage?.trim() ?? '', antwort: f.antwort?.trim() ?? '' }))
+  .filter((f) => f.frage && f.antwort);
+const absaetze = (text: string) =>
+  text
+    .split(/\n\s*\n/)
+    .map((a) => a.trim())
+    .filter(Boolean);
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: items.map((f) => ({
+    '@type': 'Question',
+    name: f.frage,
+    acceptedAnswer: { '@type': 'Answer', text: f.antwort },
+  })),
+};
+---
+
+{
+  items.length > 0 && (
+    <section id={id} class="mx-auto max-w-6xl px-6 py-16 sm:py-24" aria-labelledby={`${id}-titel`}>
+      <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
+        <div>
+          {eyebrow && <p class="text-sm font-semibold uppercase tracking-wider text-brand">{eyebrow}</p>}
+          <h2 id={`${id}-titel`} class="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            {title || 'Häufige Fragen'}
+          </h2>
+          {intro && <p class="mt-4 max-w-md text-slate-600">{intro}</p>}
+        </div>
+        <div class="border-t border-slate-200">
+          {items.map((f) => (
+            <details class="faq-eintrag border-b border-slate-200">
+              <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-5 text-lg font-semibold text-slate-900">
+                <h3 class="text-[inherit] font-[inherit]">{f.frage}</h3>
+                <span class="faq-symbol mt-1.5 shrink-0 text-brand" aria-hidden="true" />
+              </summary>
+              <div class="pb-6 pr-10">
+                {absaetze(f.antwort).map((a) => (
+                  <p class="mb-3 leading-relaxed text-slate-600 last:mb-0">{a}</p>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .faq-eintrag summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq-symbol {
+    position: relative;
+    width: 16px;
+    height: 16px;
+  }
+  .faq-symbol::before,
+  .faq-symbol::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 16px;
+    height: 2px;
+    background: currentColor;
+    transform: translate(-50%, -50%);
+    transition: transform 0.2s ease;
+  }
+  .faq-symbol::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+  .faq-eintrag[open] .faq-symbol::after {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+</style>
