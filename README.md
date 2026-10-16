@@ -10,6 +10,8 @@ Formulare laufen über den Formular-Hub `https://forms.millionstories.de/`, das 
 3. **Repo:** Mit dem Kundenkonto hier auf **Use this template → Create a new repository** klicken. Name = Kunden-ID, Private. Dann `millionstories-lkue` unter **Settings → Collaborators** einladen.
 4. **Hochladen:** ZIP entpacken, im Kunden-Repo **Add file → Upload files**, Inhalt hineinziehen, **Commit changes**.
 5. **Deploy Now:** Im IONOS-Konto des Kunden mit dem Kunden-Repo verbinden: NodeJS 22.x, `npm ci` und `npm run build`, Ausgabe `dist`.
+   Danach die Datei `.github/workflows/<projekt>-build.yaml` an Claude geben – sie bekommt den Bilder-Zwischenspeicher
+   (Updates aus dem CMS nach ca. 1–2 Minuten statt mehreren Minuten).
 6. **Formular-Hub:** PHP-Block von Claude in `/api/index.php` eintragen.
 7. **CMS (optional):** Domains in `/auth/index.php` unter `$erlaubte_websites` eintragen, Pflege unter `/admin`.
    Die CMS-Helfer (`public/admin/vorschau.js`, `public/admin/galerie-widget.js`, `src/lib/cms-bild.ts`) sind schon im Starter;
@@ -32,6 +34,8 @@ Ein- und ausschalten in **`src/projekt.config.ts`** (`aktiv: true`), dort auch A
 - Impressum und Datenschutz: `src/data/rechtstexte/impressum.md` und `datenschutz.md`
 - Firmenname für Seitentitel: `src/projekt.config.ts`
 - Kopf- und Fußbereich: `src/components/Header.astro` und `Footer.astro` (Platzhalter, pro Kunde ersetzen)
+- Häufige Fragen: `src/components/Faq.astro` – die Fragen gehören zur jeweiligen Seite (Feld `faq` in `src/data/seiten/<seite>.json`),
+  Schema.org und llms.txt werden automatisch erzeugt
 
 Änderungen später: neue ZIP von Claude im Kunden-Repo hochladen, Deploy Now veröffentlicht automatisch.
 

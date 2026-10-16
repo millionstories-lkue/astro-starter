@@ -8,7 +8,6 @@
  */
 import { defineCollection, z } from 'astro:content';
 import { glob, type Loader } from 'astro/loaders';
-import { existsSync, readdirSync } from 'node:fs';
 
 const bild = z.string().optional().nullable();
 const text = z.string().optional().nullable();
@@ -22,11 +21,13 @@ const datumOptional = z.preprocess((v) => (v === '' || v === null ? undefined : 
 /** Datum + Uhrzeit aus dem CMS ("2026-11-03 19:00"), als Ortszeit Deutschland gemeint */
 const zeitpunkt = z.union([z.string(), z.date()]).optional().nullable();
 
+/** Vorhandene Inhaltsdateien (zur Bauzeit ermittelt) */
+const mdDateien = Object.keys(import.meta.glob('/src/data/**/*.md'));
+
 /** Ordner unter src/data/ – fehlt er oder ist er leer, ist die Sammlung einfach leer (ohne Warnung) */
 function ordner(name: string): Loader {
-  const base = `./src/data/${name}`;
-  const hatDateien = existsSync(base) && readdirSync(base, { recursive: true }).some((d) => String(d).endsWith('.md'));
-  if (hatDateien) return glob({ pattern: '**/*.md', base });
+  const hatDateien = mdDateien.some((p) => p.startsWith(`/src/data/${name}/`));
+  if (hatDateien) return glob({ pattern: '**/*.md', base: `./src/data/${name}` });
   return { name: `leer-${name}`, load: async ({ store }) => store.clear() };
 }
 

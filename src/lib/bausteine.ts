@@ -299,7 +299,12 @@ function zuEintrag(id: BausteinId, e: EintragDaten): Eintrag {
  * Portfolio und Blog: neueste zuerst. Events: kommende Termine zuerst (nächster oben),
  * danach vergangene (jüngster oben).
  */
+/** Welche Bausteine überhaupt Einträge haben (vermeidet Warnungen bei leeren Sammlungen) */
+const vorhandeneDateien = Object.keys(import.meta.glob('/src/data/{portfolio,blog,events}/**/*.md'));
+const hatEintraege = (id: BausteinId) => vorhandeneDateien.some((p) => p.startsWith(`/src/data/${id}/`));
+
 export async function getEintraege(id: BausteinId): Promise<Eintrag[]> {
+  if (!hatEintraege(id)) return [];
   const roh = (await getCollection(id)) as EintragDaten[];
   const liste = roh.filter((e) => (e.data as any).veroeffentlicht !== false).map((e) => zuEintrag(id, e));
 
@@ -448,4 +453,21 @@ export async function llmsAbschnitte(site: URL | string): Promise<string> {
     teile.push(zeilen.join('\n'));
   }
   return teile.join('\n\n');
+}
+
+/* ---------- Häufige Fragen aller Seiten (für llms.txt) ---------- */
+
+const seitenDateien = import.meta.glob<{ default: { faq?: { fragen?: { frage?: string; antwort?: string }[] } } }>(
+  '/src/data/seiten/*.json',
+  { eager: true },
+);
+
+/** Markdown-Abschnitt mit allen FAQ-Fragen aus src/data/seiten/*.json (Feld „faq“) – leer, wenn es keine gibt */
+export function llmsHaeufigeFragen(): string {
+  const fragen = Object.values(seitenDateien)
+    .flatMap((d) => d.default?.faq?.fragen ?? [])
+    .map((f) => ({ frage: f.frage?.trim() ?? '', antwort: f.antwort?.trim() ?? '' }))
+    .filter((f) => f.frage && f.antwort);
+  if (!fragen.length) return '';
+  return ['## Häufige Fragen', ...fragen.map((f) => `### ${f.frage}\n\n${f.antwort}`)].join('\n\n');
 }

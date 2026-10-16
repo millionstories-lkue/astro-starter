@@ -2,11 +2,12 @@
  * llms.txt – Zusammenfassung der Website für KI-Systeme (https://<domain>/llms.txt)
  *
  * PRO KUNDE ANPASSEN: nur den Kopfbereich (KOPF) und die festen Seiten (SEITEN).
- * Einträge der aktiven Bausteine (Portfolio, Blog, Events) werden automatisch ergänzt.
+ * Automatisch ergänzt: Einträge der aktiven Bausteine (Portfolio, Blog, Events) und
+ * die häufigen Fragen aller Seiten (Feld „faq“ in src/data/seiten/*.json).
  */
 import type { APIRoute } from 'astro';
 import { projekt } from '@/projekt.config';
-import { llmsAbschnitte } from '@/lib/bausteine';
+import { llmsAbschnitte, llmsHaeufigeFragen } from '@/lib/bausteine';
 
 const KOPF = `# ${projekt.firmenname}
 
@@ -30,6 +31,6 @@ export const GET: APIRoute = async ({ site }) => {
   const basis = site ?? new URL('https://www.kundendomain.de');
   const seiten = SEITEN.map(([name, pfad, text]) => `- [${name}](${new URL(pfad, basis).href}): ${text}`).join('\n');
   const bausteine = await llmsAbschnitte(basis);
-  const teile = [KOPF, `## Seiten\n\n${seiten}`, bausteine, KONTAKT].filter(Boolean);
+  const teile = [KOPF, `## Seiten\n\n${seiten}`, bausteine, llmsHaeufigeFragen(), KONTAKT].filter(Boolean);
   return new Response(teile.join('\n\n') + '\n', { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 };
