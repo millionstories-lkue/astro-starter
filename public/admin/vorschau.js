@@ -26,6 +26,21 @@
     componentWillUnmount: function () {
       clearInterval(this.timer);
     },
+    // Decap fragt beim Bildfeld selbst nach, ob neu gezeichnet werden soll. Ohne diese
+    // Prüfung würde ein im Bilder-Fenster ausgewähltes Bild („Ausgewähltes Element
+    // verwenden“) nicht übernommen.
+    shouldComponentUpdate: function (next, nextState) {
+      var p = this.props;
+      return (
+        (nextState && nextState.runde !== this.state.runde) ||
+        next.value !== p.value ||
+        next.mediaPaths !== p.mediaPaths ||
+        next.getAsset !== p.getAsset ||
+        next.classNameWrapper !== p.classNameWrapper ||
+        next.hasActiveStyle !== p.hasActiveStyle ||
+        next.isDisabled !== p.isDisabled
+      );
+    },
     render: function () {
       var props = this.props;
       // Neue Funktion bei jedem Zeichnen → Decap fragt das Vorschaubild erneut ab
