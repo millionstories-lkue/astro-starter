@@ -5,7 +5,7 @@
  */
 import type { ImageMetadata } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
-import { cmsBild } from '@/lib/cms-bild';
+import { cmsAlt, cmsBild } from '@/lib/cms-bild';
 import { projekt } from '@/projekt.config';
 
 export type BausteinId = keyof typeof projekt.bausteine;
@@ -247,7 +247,7 @@ export interface Eintrag {
 
 function fotosVon(titel: string, liste?: { bild?: string | null; alt?: string | null }[] | null): Foto[] {
   const gefunden = (liste ?? [])
-    .map((b) => ({ src: cmsBild(b.bild), alt: b.alt?.trim() || '' }))
+    .map((b) => ({ src: cmsBild(b.bild), alt: cmsAlt(b.bild, b.alt) }))
     .filter((b): b is { src: ImageMetadata; alt: string } => !!b.src);
   return gefunden.map((f, i) => ({ src: f.src, alt: f.alt || `${titel} – Foto ${i + 1} von ${gefunden.length}` }));
 }
@@ -265,7 +265,7 @@ function zuEintrag(id: BausteinId, e: EintragDaten): Eintrag {
     kurztext: d.kurztext?.trim() || undefined,
     tags: nurGueltigeTags(id, d.tags),
     titelbild,
-    titelbildAlt: d.titelbildAlt?.trim() || (cmsBild(d.titelbild) ? d.titel : fotos[0]?.alt) || d.titel,
+    titelbildAlt: cmsAlt(d.titelbild, d.titelbildAlt) || (cmsBild(d.titelbild) ? d.titel : fotos[0]?.alt) || d.titel,
     fotos,
     datum: d.datum instanceof Date ? d.datum : undefined,
     aktualisiert: d.aktualisiert instanceof Date ? d.aktualisiert : undefined,

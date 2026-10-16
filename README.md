@@ -14,7 +14,7 @@ Formulare laufen über den Formular-Hub `https://forms.millionstories.de/`, das 
    (Updates aus dem CMS nach ca. 1–2 Minuten statt mehreren Minuten).
 6. **Formular-Hub:** PHP-Block von Claude in `/api/index.php` eintragen.
 7. **CMS (optional):** Domains in `/auth/index.php` unter `$erlaubte_websites` eintragen, Pflege unter `/admin`.
-   Die CMS-Helfer (`public/admin/vorschau.js`, `public/admin/galerie-widget.js`, `src/lib/cms-bild.ts`) sind schon im Starter;
+   Die CMS-Helfer (`public/admin/mediathek.js`, `public/admin/galerie-widget.js`, `src/lib/cms-bild.ts`) sind schon im Starter;
    Claude liefert pro Kunde nur `public/admin/index.html`, `public/admin/config.yml` und die Inhalte.
 
 ## Bausteine (Portfolio, Blog, Events)
@@ -42,9 +42,10 @@ Ein- und ausschalten in **`src/projekt.config.ts`** (`aktiv: true`), dort auch A
 ## Nicht verändern
 
 - `src/lib/formhub-client.js` – Verbindung zum Formular-Hub
-- `src/lib/cms-bild.ts` – Bilder aus dem CMS für die Bildoptimierung (auch Unterordner)
-- `public/admin/vorschau.js` – sorgt dafür, dass das CMS Bildvorschauen zuverlässig anzeigt
-- `public/admin/galerie-widget.js` – CMS-Feld „Galerie“: mehrere Fotos auf einmal hochladen, per Ziehen sortieren
+- `src/lib/cms-bild.ts` – Bilder aus dem CMS für die Bildoptimierung (auch Unterordner) und zentrale Bildbeschreibungen (`cmsAlt`)
+- `public/admin/mediathek.js` – Mediathek im CMS: alle Bilder an einem Ort (Menü „Medien“ und jedes Bildfeld), Hochladen, Beschreibungen, Löschen nur nicht verwendeter Bilder
+- `public/admin/galerie-widget.js` – CMS-Feld „Galerie“: mehrere Fotos auf einmal hochladen oder aus der Mediathek wählen, per Ziehen sortieren
+- `public/admin/vorschau.js` – nur noch für ältere Projekte ohne Mediathek (in neuen Projekten nicht einbinden)
 - `src/components/Kontaktformular.astro`, `src/components/Rechtstext.astro`, `src/layouts/BaseLayout.astro`
 - `src/lib/bausteine.ts`, `src/lib/bausteine-schema.ts` – Logik und Datenmodell der Bausteine
 - `src/pages/[bereich]/`, `src/pages/impressum.astro`, `src/pages/datenschutz.astro`, `src/pages/404.astro`

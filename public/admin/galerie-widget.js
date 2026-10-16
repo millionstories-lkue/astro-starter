@@ -2,7 +2,9 @@
  * Eigenes CMS-Feld „Galerie“ für Decap CMS
  * ------------------------------------------------------------
  * - Mehrere Fotos auf einmal hochladen (Auswahl oder Ziehen in das Feld)
- * - Fotos werden vor dem Hochladen verkleinert (max. 2000 px, JPEG)
+ * - Große Fotos werden vor dem Hochladen verkleinert (max. 2000 px); mit der Mediathek
+ *   (mediathek.js) bleiben kleinere Bilder unverändert und PNG bleibt PNG
+ * - „Aus Mediathek wählen“: vorhandene Bilder der Website übernehmen (mediathek.js)
  * - Reihenfolge per Ziehen ändern, einzelne Fotos entfernen
  * - Optional eine Beschreibung (Alt-Text) pro Foto
  *
@@ -57,7 +59,8 @@
       { Authorization: 'token ' + t, Accept: optionen.roh ? 'application/vnd.github.raw' : 'application/vnd.github+json' },
       optionen.body ? { 'Content-Type': 'application/json' } : {},
     );
-    return fetch(GH + pfad, { method: optionen.method || 'GET', headers: headers, body: optionen.body }).then(function (r) {
+    // cache: 'no-store' – sonst liefert der Browser bis zu 60 Sekunden alte Antworten von GitHub
+    return fetch(GH + pfad, { method: optionen.method || 'GET', headers: headers, body: optionen.body, cache: 'no-store' }).then(function (r) {
       if (!r.ok) {
         return r.text().then(function (txt) {
           var fehler = new Error('GitHub meldet ' + r.status + ': ' + txt.slice(0, 200));
@@ -169,6 +172,7 @@
   }
 
   /* ---------- Hochladen: viele Dateien in wenigen Commits ---------- */
+  var letzterCommit = null;
   function commitDateien(dateien, nachricht) {
     // dateien: [{ pfad, base64 }]
     return ladeEinstellungen().then(function (e) {
@@ -178,6 +182,9 @@
         return gh(basis + '/ref/heads/' + e.branch)
           .then(function (ref) {
             refSha = ref.object.sha;
+            // GitHub liefert direkt nach einem Commit manchmal noch den alten Stand –
+            // dann auf unserem eigenen letzten Commit aufbauen.
+            if (letzterCommit && nr === 0 && refSha !== letzterCommit) refSha = letzterCommit;
             return gh(basis + '/commits/' + refSha);
           })
           .then(function (commit) {
@@ -207,11 +214,20 @@
             return gh(basis + '/commits', { method: 'POST', body: JSON.stringify({ message: nachricht, tree: baum.sha, parents: [refSha] }) });
           })
           .then(function (neu) {
-            return gh(basis + '/refs/heads/' + e.branch, { method: 'PATCH', body: JSON.stringify({ sha: neu.sha }) });
+            return gh(basis + '/refs/heads/' + e.branch, { method: 'PATCH', body: JSON.stringify({ sha: neu.sha }) }).then(function (r) {
+              letzterCommit = neu.sha;
+              return r;
+            });
           })
           .catch(function (fehler) {
-            // Gleichzeitige Änderung im Repo → einmal neu versuchen
-            if (nr < 2 && (fehler.status === 422 || fehler.status === 409)) return versuch(nr + 1);
+            // Gleichzeitige Änderung im Repo oder GitHub noch nicht aktuell → kurz warten, neu versuchen
+            if (nr < 4 && (fehler.status === 422 || fehler.status === 409)) {
+              return new Promise(function (ok) {
+                setTimeout(ok, 1500 * (nr + 1));
+              }).then(function () {
+                return versuch(nr + 1);
+              });
+            }
             throw fehler;
           });
       }
@@ -320,12 +336,69 @@
   });
 
   /* ---------- Das Feld ---------- */
+  var galerieNr = 0;
   var GalerieFeld = window.createClass({
     getInitialState: function () {
+      this.nr = 'galerie-' + ++galerieNr;
       return { status: '', fehler: '', laeuft: false, gezogen: null, ziel: null, mitBeschreibung: false, ueberFeld: false };
     },
     liste: function () {
       return zuListe(this.props.value);
+    },
+    // Der Mediathek melden, welche Bilder hier gerade stehen (auch ungespeichert)
+    componentDidMount: function () {
+      this.melden();
+    },
+    componentDidUpdate: function () {
+      this.melden();
+    },
+    componentWillUnmount: function () {
+      if (window.MSMediathek) window.MSMediathek.abmelden(this.nr);
+    },
+    melden: function () {
+      if (window.MSMediathek)
+        window.MSMediathek.melde(
+          this.nr,
+          this.liste().map(function (e) {
+            return ohneSchraegstrich(e.bild);
+          }),
+        );
+    },
+    ausMediathek: function () {
+      var self = this;
+      var m = window.MSMediathek;
+      if (!m) return;
+      var oeffnen = function (ordner) {
+        m.oeffne({
+          modus: 'auswahl',
+          mehrfach: true,
+          ordner: ordner || undefined,
+          onAuswahl: function (pfade) {
+            var liste = self.liste();
+            var da = {};
+            liste.forEach(function (e) {
+              da[ohneSchraegstrich(e.bild)] = true;
+            });
+            var neu = pfade.filter(function (p) {
+              return !da[p];
+            });
+            if (!neu.length) return;
+            self.speichern(
+              liste.concat(
+                neu.map(function (p) {
+                  return { bild: p, alt: '' };
+                }),
+              ),
+            );
+            self.setState({ fehler: '', status: neu.length + (neu.length === 1 ? ' Foto' : ' Fotos') + ' aus der Mediathek übernommen. Jetzt oben speichern bzw. veröffentlichen.' });
+          },
+        });
+      };
+      var ordner = this.ordner();
+      if (ordner) oeffnen(ordner);
+      else m.zielOrdner(this.props.entry, this.props.field).then(oeffnen, function () {
+        oeffnen(null);
+      });
     },
     speichern: function (liste) {
       this.props.onChange(liste.length ? liste : []);
@@ -354,13 +427,18 @@
       this.liste().forEach(function (e) {
         vorhanden[ohneSchraegstrich(e.bild).toLowerCase()] = true;
       });
-      var auftraege = dateien.map(function (f) {
+      var m = window.MSMediathek;
+      // Dateiname erst nach dem Vorbereiten festlegen (Endung jpg/png/webp)
+      function pfadFuer(f, endung) {
         var basis = slugify(f.name.replace(/\.[^.]+$/, '')) || 'foto';
-        var name = basis + '.jpg';
+        var name = basis + '.' + endung;
         var i = 2;
-        while (vorhanden[(ordner + '/' + name).toLowerCase()]) name = basis + '-' + i++ + '.jpg';
+        while (vorhanden[(ordner + '/' + name).toLowerCase()]) name = basis + '-' + i++ + '.' + endung;
         vorhanden[(ordner + '/' + name).toLowerCase()] = true;
-        return { datei: f, pfad: ordner + '/' + name };
+        return ordner + '/' + name;
+      }
+      var auftraege = dateien.map(function (f) {
+        return { datei: f, pfad: null };
       });
 
       this.setState({ laeuft: true, fehler: '', status: 'Bereite ' + auftraege.length + ' Fotos vor …' });
@@ -372,10 +450,17 @@
         if (!teil.length) return Promise.resolve();
         return Promise.all(
           teil.map(function (a) {
-            return verkleinern(a.datei)
-              .then(function (blob) {
-                a.lokaleUrl = URL.createObjectURL(blob);
-                return alsBase64(blob);
+            var vorbereitet = m
+              ? m.vorbereiten(a.datei)
+              : verkleinern(a.datei).then(function (blob) {
+                  return { blob: blob, endung: 'jpg' };
+                });
+            return vorbereitet
+              .then(function (v) {
+                a.pfad = pfadFuer(a.datei, v.endung);
+                a.blob = v.blob;
+                a.lokaleUrl = URL.createObjectURL(v.blob);
+                return alsBase64(v.blob);
               })
               .then(function (b64) {
                 a.base64 = b64;
@@ -384,13 +469,26 @@
         )
           .then(function () {
             self.setState({ status: 'Lade hoch: ' + fertig + ' von ' + auftraege.length + ' …' });
-            return commitDateien(teil, 'Fotos hochgeladen: ' + ordner.split('/').pop() + ' (' + teil.length + ')');
+            var nachricht = 'Fotos hochgeladen: ' + ordner.split('/').pop() + ' (' + teil.length + ')';
+            if (m)
+              return m.commit(
+                teil.map(function (a) {
+                  return { pfad: a.pfad, base64: a.base64 };
+                }),
+                nachricht,
+              );
+            return commitDateien(teil, nachricht);
           })
           .then(function () {
             teil.forEach(function (a) {
               vorschauCache[a.pfad] = Promise.resolve(a.lokaleUrl);
+              if (m) {
+                m.lokaleVorschau(a.pfad, a.blob);
+                m.bekannt(a.pfad, a.blob.size);
+              }
               neu.push({ bild: a.pfad, alt: '' });
               a.base64 = null;
+              a.blob = null;
             });
             fertig += teil.length;
             // Sofort in die Liste übernehmen, damit nichts verloren geht
@@ -475,6 +573,9 @@
               e.target.value = '';
             },
           }),
+          window.MSMediathek
+            ? h('button', { type: 'button', style: knopf2, disabled: s.laeuft, onClick: self.ausMediathek }, 'Aus Mediathek wählen')
+            : null,
           h(
             'button',
             {

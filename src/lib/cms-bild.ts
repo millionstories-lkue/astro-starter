@@ -26,3 +26,23 @@ export function cmsBild(pfad?: string | null): ImageMetadata | undefined {
   const p = cmsPfad(pfad);
   return p ? bilder[p]?.default : undefined;
 }
+
+/**
+ * Zentrale Bildbeschreibungen aus der Mediathek im CMS (src/data/medien.json, Feld „alt“).
+ * Die Datei entsteht beim ersten Speichern einer Beschreibung – fehlt sie, gilt nur die Beschreibung am Bild.
+ */
+const medien = Object.values(
+  import.meta.glob<{ alt?: Record<string, string> }>('/src/data/medien.json', { eager: true, import: 'default' }),
+)[0];
+
+/**
+ * Beschreibung (Alt-Text) eines CMS-Bildes: die am Bild eingetragene Beschreibung,
+ * sonst die zentrale aus der Mediathek, sonst ''. Eigene Ersatztexte danach mit || anhängen:
+ *   alt={cmsAlt(bild, bildAlt) || `${titel} – Foto 1`}
+ */
+export function cmsAlt(pfad?: string | null, alt?: string | null): string {
+  const eigen = alt?.trim();
+  if (eigen) return eigen;
+  const p = cmsPfad(pfad)?.slice(1);
+  return (p && medien?.alt?.[p]?.trim()) || '';
+}
