@@ -4,6 +4,7 @@
  * Eine zentrale Bildverwaltung für die ganze Website:
  * - zeigt ALLE Bilder unter src/assets/cms/ (auch in Unterordnern, z. B. pro Projekt)
  * - Suche, Filter nach Ordner, „Nur nicht verwendete“
+ * - auch Dateien zum Herunterladen (PDF), auswählbar über Dateifelder (widget: file)
  * - Hochladen (mehrere auf einmal, Ziehen ins Fenster). Große Bilder werden auf max.
  *   2000 px verkleinert, PNG bleibt PNG, kleinere Bilder bleiben unverändert (keine
  *   doppelte Komprimierung).
@@ -39,6 +40,10 @@
   var PRO_COMMIT = 20;
   var ALT_DATEI = 'src/data/medien.json';
   var BILD_RE = /\.(jpe?g|png|webp|avif)$/i;
+  var DOK_RE = /\.pdf$/i; // Dateien zum Herunterladen
+  function istDok(pfad) {
+    return DOK_RE.test(pfad);
+  }
   var TEXT_RE = /\.(md|mdx|json|ya?ml|astro|ts|js|mjs)$/i;
 
   var optionen = { altTexte: true };
@@ -259,6 +264,10 @@
   /** Liefert { blob, endung } – Original, wenn klein genug, sonst verkleinert */
   function vorbereiten(datei) {
     var typ = (datei.type || '').toLowerCase();
+    if (typ === 'application/pdf' || /\.pdf$/i.test(datei.name)) {
+      if (datei.size > 20 * 1024 * 1024) return Promise.reject(new Error('„' + datei.name + '“ ist größer als 20 MB.'));
+      return Promise.resolve({ blob: datei, endung: 'pdf' });
+    }
     var istPng = typ === 'image/png';
     var istJpeg = typ === 'image/jpeg' || typ === 'image/jpg';
     var istWebp = typ === 'image/webp';
@@ -312,7 +321,7 @@
         var gesehen = {};
         (antwort.tree || []).forEach(function (x) {
           if (x.type !== 'blob') return;
-          if (x.path.indexOf(e.wurzel + '/') === 0 && BILD_RE.test(x.path)) {
+          if (x.path.indexOf(e.wurzel + '/') === 0 && (BILD_RE.test(x.path) || DOK_RE.test(x.path))) {
             if (geloescht[x.path]) return;
             bilder.push({ pfad: x.path, sha: x.sha, groesse: x.size });
             gesehen[x.path] = true;
@@ -547,12 +556,14 @@
   /** Zielordner für neue Bilder eines Eintrags */
   function zielOrdner(entry, field) {
     return ladeEinstellungen().then(function (e) {
+      // Sammlung und Eintrag aus der Adresse des CMS (#/collections/<sammlung>/entries/<eintrag>)
+      var adresse = (location.hash || '').match(/#\/collections\/([^/?]+)\/(?:entries\/([^/?]+)|new)/);
       var pfad = entry && entry.get && entry.get('path');
-      var slug = pfad ? dateiname(pfad).replace(/\.[^.]+$/, '') : '';
+      var slug = adresse && adresse[2] ? decodeURIComponent(adresse[2]) : pfad ? dateiname(pfad).replace(/\.[^.]+$/, '') : '';
       if (!slug) slug = slugify(entry && entry.getIn && entry.getIn(['data', 'titel']));
       var feldOrdner = field && field.get && field.get('ordner');
       if (feldOrdner) return slug ? ohneSchraegstrich(feldOrdner).replace(/\/+$/, '') + '/' + slug : e.wurzel;
-      var sammlung = entry && entry.get && entry.get('collection');
+      var sammlung = adresse ? decodeURIComponent(adresse[1]) : entry && entry.get && entry.get('collection');
       var vorlage = sammlung && e.sammlungen[sammlung];
       if (vorlage) {
         if (/\{\{\s*(filename|slug)\s*\}\}/.test(vorlage)) {
@@ -588,6 +599,7 @@
     '.mt-kachel[aria-pressed=true]{border-color:#3a69c7;box-shadow:0 0 0 2px #3a69c7}' +
     '.mt-bild{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;color:#9aa1ad;font-size:11px;background:#e7e9ee}' +
     '.mt-bild img{width:100%;height:100%;object-fit:cover;display:block}' +
+    '.mt-dok{font-size:22px !important;font-weight:700;color:#c62828 !important;background:#fbe9e9 !important;letter-spacing:.06em}' +
     '.mt-name{display:block;padding:5px 7px 6px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#fff}' +
     '.mt-haken{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.9);border:2px solid #9aa1ad;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}' +
     '.mt-kachel[aria-pressed=true] .mt-haken{background:#3a69c7;border-color:#3a69c7}' +
@@ -640,6 +652,7 @@
    * Mediathek öffnen.
    * opt.modus     'verwalten' (Menü „Medien“) oder 'auswahl'
    * opt.mehrfach  mehrere Bilder auswählbar
+   * opt.nur       'bilder' oder 'dateien' (PDF) – sonst alles
    * opt.ordner    Zielordner für neue Bilder (Standard: Hauptordner)
    * opt.aktuell   bereits gewählte Pfade (werden markiert)
    * opt.onAuswahl function(pfade[])
@@ -677,7 +690,8 @@
     var suche = el('input', { type: 'search', id: 'mt-suche', placeholder: 'Suchen …', 'aria-label': 'Bilder suchen' });
     var ordnerWahl = el('select', { 'aria-label': 'Ordner' });
     var nurFrei = el('input', { type: 'checkbox' });
-    var dateiEingabe = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', multiple: true, id: 'mt-datei', class: 'mt-nur-sr' });
+    var annehmen = opt.nur === 'bilder' ? 'image/jpeg,image/png,image/webp' : opt.nur === 'dateien' ? 'application/pdf,.pdf' : 'image/jpeg,image/png,image/webp,application/pdf,.pdf';
+    var dateiEingabe = el('input', { type: 'file', accept: annehmen, multiple: true, id: 'mt-datei', class: 'mt-nur-sr' });
     var zielText = el('span', { class: 'mt-ziel' });
     var raster = el('div', { class: 'mt-raster', role: 'list', 'aria-label': 'Bilder' });
     var detail = el('aside', { class: 'mt-detail', 'aria-label': 'Details zum Bild' });
@@ -697,7 +711,7 @@
               ? opt.mehrfach
                 ? 'Bilder anklicken und „Übernehmen“ wählen – oder neue hochladen.'
                 : 'Ein Bild anklicken und „Übernehmen“ wählen (oder doppelt klicken) – oder ein neues hochladen.'
-              : 'Alle Bilder der Website. Beschreibungen vergeben, nicht mehr verwendete Bilder löschen.',
+              : 'Alle Bilder und Dateien (PDF) der Website. Beschreibungen vergeben, nicht mehr verwendete löschen.',
           }),
         ]),
         knopfX,
@@ -706,7 +720,7 @@
         suche,
         ordnerWahl,
         el('label', { class: 'mt-check' }, [nurFrei, 'Nur nicht verwendete']),
-        el('label', { for: 'mt-datei', class: 'mt-k mt-k-blau', tabindex: '0', role: 'button' }, ['+ Bilder hochladen']),
+        el('label', { for: 'mt-datei', class: 'mt-k mt-k-blau', tabindex: '0', role: 'button' }, [opt.nur === 'dateien' ? '+ Datei hochladen' : opt.nur === 'bilder' ? '+ Bilder hochladen' : '+ Hochladen']),
         knopfUebernahme,
         dateiEingabe,
         zielText,
@@ -756,6 +770,8 @@
       if (!st.baum) return [];
       var q = st.suche.toLowerCase();
       return st.baum.bilder.filter(function (b) {
+        if (opt.nur === 'bilder' && istDok(b.pfad)) return false;
+        if (opt.nur === 'dateien' && !istDok(b.pfad)) return false;
         if (st.ordner && ordnerVon(b.pfad) !== st.ordner) return false;
         if (q && b.pfad.toLowerCase().indexOf(q) < 0 && zentralerAlt(b.pfad).toLowerCase().indexOf(q) < 0) return false;
         if (st.nurFrei && (!st.verwendung || istVerwendet(b.pfad))) return false;
@@ -859,7 +875,10 @@
           raster.appendChild(el('p', { class: 'mt-gruppe', role: 'presentation', text: ordnerLabel(o) + (o === st.eintrag ? ' (dieser Eintrag)' : '') }));
           letzterOrdner = o;
         }
-        var box = el('span', { class: 'mt-bild', 'data-pfad': b.pfad, 'data-sha': b.sha || '' }, ['lädt …']);
+        var dok = istDok(b.pfad);
+        var box = dok
+          ? el('span', { class: 'mt-bild mt-dok', 'aria-hidden': 'true' }, ['PDF'])
+          : el('span', { class: 'mt-bild', 'data-pfad': b.pfad, 'data-sha': b.sha || '' }, ['lädt …']);
         var verwendet = istVerwendet(b.pfad);
         var marke = st.verwendung ? (verwendet ? null : el('span', { class: 'mt-marke mt-marke-frei', text: 'nicht verwendet' })) : null;
         var kachel = el(
@@ -885,6 +904,7 @@
           [box, el('span', { class: 'mt-haken', 'aria-hidden': 'true', text: '✓' }), marke, el('span', { class: 'mt-name', text: dateiname(b.pfad) })],
         );
         raster.appendChild(kachel);
+        if (dok) return;
         if (beobachter) beobachter.observe(box);
         else ladeKachelBild(box);
       });
@@ -923,12 +943,13 @@
           return x.pfad === st.detail;
         })[0];
       if (!b) {
-        detail.appendChild(el('p', { class: 'mt-hinweis', text: 'Bild anklicken, um Details, Beschreibung und Verwendung zu sehen.' }));
+        detail.appendChild(el('p', { class: 'mt-hinweis', text: 'Bild oder Datei anklicken, um Details, Beschreibung und Verwendung zu sehen.' }));
         return;
       }
-      var bildBox = el('div', { class: 'mt-detail-bild' }, ['lädt …']);
+      var dokument = istDok(b.pfad);
+      var bildBox = el('div', { class: 'mt-detail-bild' + (dokument ? ' mt-dok' : '') }, [dokument ? 'PDF' : 'lädt …']);
       var masse = el('p', { class: 'mt-meta' });
-      vorschau(b.pfad, b.sha).then(function (url) {
+      if (!dokument) vorschau(b.pfad, b.sha).then(function (url) {
         bildBox.innerHTML = '';
         var img = el('img', { src: url, alt: '' });
         img.addEventListener('load', function () {
@@ -942,7 +963,7 @@
       masse.textContent = b.groesse ? kb(b.groesse) : '';
       detail.appendChild(masse);
 
-      if (optionen.altTexte) {
+      if (optionen.altTexte && !dokument) {
         var feld = el('textarea', { id: 'mt-alt', placeholder: 'Was ist auf dem Bild zu sehen?' });
         var vorschlag = !zentralerAlt(b.pfad) && st.vorschlaege && st.vorschlaege[b.pfad];
         feld.value = zentralerAlt(b.pfad) || vorschlag || '';
@@ -1193,7 +1214,9 @@
 
     function hochladen(dateiListe) {
       var dateien = Array.prototype.filter.call(dateiListe || [], function (f) {
-        return /^image\//.test(f.type);
+        var dok = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+        if (dok) return opt.nur !== 'bilder';
+        return /^image\//.test(f.type) && opt.nur !== 'dateien';
       });
       if (!dateien.length || st.laeuft || !st.baum) return;
       var ordner = zielOrdnerJetzt();
@@ -1355,9 +1378,14 @@
   var bildfeldNr = 0;
   var original = window.CMS.getWidget && window.CMS.getWidget('image');
 
-  var BildFeld = window.createClass({
+  function feldFuer(art) {
+  var istDatei = art === 'datei';
+  var W = istDatei
+    ? { waehlen: 'Datei wählen', anders: 'Andere Datei wählen', keins: 'Keine Datei ausgewählt', fehlt: 'Datei fehlt', entfernen: 'Datei entfernen' }
+    : { waehlen: 'Bild wählen', anders: 'Anderes Bild wählen', keins: 'Kein Bild ausgewählt', fehlt: 'Bild fehlt', entfernen: 'Bild entfernen' };
+  return window.createClass({
     getInitialState: function () {
-      this.nr = 'bild-' + ++bildfeldNr;
+      this.nr = art + '-' + ++bildfeldNr;
       return { url: null, fehler: false, fuer: null };
     },
     pfad: function () {
@@ -1381,7 +1409,7 @@
       melde(this.nr, p ? [p] : []);
       if (p === this.state.fuer) return;
       this.setState({ fuer: p, url: null, fehler: false });
-      if (!p) return;
+      if (!p || istDatei) return;
       vorschau(p).then(
         function (url) {
           if (!self.weg && self.pfad() === p) self.setState({ url: url });
@@ -1397,6 +1425,7 @@
         oeffne({
           modus: 'auswahl',
           mehrfach: false,
+          nur: istDatei ? 'dateien' : 'bilder',
           ordner: ordner,
           aktuell: self.pfad() ? [self.pfad()] : [],
           onAuswahl: function (pfade) {
@@ -1418,17 +1447,19 @@
           ? h(
               'div',
               { style: { width: '120px', height: '90px', borderRadius: '6px', overflow: 'hidden', background: '#eff0f4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#798291', flex: 'none' } },
-              this.state.url
-                ? h('img', { src: this.state.url, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } })
-                : this.state.fehler
-                  ? 'Bild fehlt'
-                  : 'lädt …',
+              istDatei
+                ? h('span', { style: { fontSize: '20px', fontWeight: 700, color: '#c62828' } }, 'PDF')
+                : this.state.url
+                  ? h('img', { src: this.state.url, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } })
+                  : this.state.fehler
+                    ? W.fehlt
+                    : 'lädt …',
             )
           : null,
         h(
           'div',
           { style: { display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 } },
-          p ? h('span', { style: { fontSize: '13px', color: '#313d3e', wordBreak: 'break-all' }, title: p }, dateiname(p)) : h('span', { style: { fontSize: '13px', color: '#798291' } }, 'Kein Bild ausgewählt'),
+          p ? h('span', { style: { fontSize: '13px', color: '#313d3e', wordBreak: 'break-all' }, title: p }, dateiname(p)) : h('span', { style: { fontSize: '13px', color: '#798291' } }, W.keins),
           h(
             'div',
             { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
@@ -1439,9 +1470,9 @@
                 type: 'button',
                 style: knopf,
                 onClick: this.waehlen,
-                'aria-label': (p ? 'Anderes Bild wählen' : 'Bild wählen') + (feldName ? ' – ' + feldName : ''),
+                'aria-label': (p ? W.anders : W.waehlen) + (feldName ? ' – ' + feldName : ''),
               },
-              p ? 'Anderes Bild wählen' : 'Bild wählen',
+              p ? W.anders : W.waehlen,
             ),
             p
               ? h(
@@ -1449,7 +1480,7 @@
                   {
                     type: 'button',
                     style: knopf2,
-                    'aria-label': 'Bild entfernen' + (feldName ? ' – ' + feldName : ''),
+                    'aria-label': W.entfernen + (feldName ? ' – ' + feldName : ''),
                     onClick: function () {
                       self.props.onChange('');
                     },
@@ -1463,7 +1494,12 @@
     },
   });
 
-  window.CMS.registerWidget('image', BildFeld, original && original.preview);
+  }
+
+  var originalDatei = window.CMS.getWidget && window.CMS.getWidget('file');
+  window.CMS.registerWidget('image', feldFuer('bild'), original && original.preview);
+  // Dateifeld (z. B. PDF zum Herunterladen) – ebenfalls über die Mediathek
+  window.CMS.registerWidget('file', feldFuer('datei'), originalDatei && originalDatei.preview);
 
   /* =====================================================================
    * Als Decap-Mediathek anmelden (Menü „Medien“)

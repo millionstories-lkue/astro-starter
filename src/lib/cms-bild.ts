@@ -46,3 +46,17 @@ export function cmsAlt(pfad?: string | null, alt?: string | null): string {
   const zentral = p ? medien?.alt?.[p]?.trim() : '';
   return zentral || alt?.trim() || '';
 }
+
+/** Dateien zum Herunterladen aus dem CMS (z. B. PDF) unter src/assets/cms/ */
+const dateien = import.meta.glob<string>('/src/assets/cms/**/*.{pdf,PDF}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+});
+
+/** Liefert zu einem Dateipfad aus dem CMS die Adresse der Datei auf der Website – oder undefined. */
+export function cmsDatei(pfad?: string | null): { url: string; name: string } | undefined {
+  const p = cmsPfad(pfad);
+  const url = p ? dateien[p] : undefined;
+  return url ? { url, name: p!.split('/').pop()! } : undefined;
+}

@@ -373,6 +373,7 @@
         m.oeffne({
           modus: 'auswahl',
           mehrfach: true,
+          nur: 'bilder',
           ordner: ordner || undefined,
           onAuswahl: function (pfade) {
             var liste = self.liste();
