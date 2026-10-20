@@ -6,7 +6,7 @@
  * - Suche, Filter nach Ordner, „Nur nicht verwendete“
  * - auch Dateien zum Herunterladen (PDF), auswählbar über Dateifelder (widget: file)
  * - Hochladen (mehrere auf einmal, Ziehen ins Fenster). Große Bilder werden auf max.
- *   2000 px verkleinert, PNG bleibt PNG, kleinere Bilder bleiben unverändert (keine
+ *   2560 px verkleinert, PNG bleibt PNG, kleinere Bilder bleiben unverändert (keine
  *   doppelte Komprimierung).
  * - zeigt bei jedem Bild, wo es verwendet wird; Löschen nur, wenn es nirgends mehr
  *   verwendet wird, mit Rückfrage „Endgültig löschen?“
@@ -35,7 +35,7 @@
   var h = window.h;
 
   var GH = 'https://api.github.com';
-  var MAX_KANTE = 2000;
+  var MAX_KANTE = 2560;
   var JPEG_QUALITAET = 0.9;
   var PRO_COMMIT = 20;
   var ALT_DATEI = 'src/data/medien.json';
@@ -1539,6 +1539,8 @@
 
   /* Für das Galerie-Feld */
   window.MSMediathek = {
+    gh: gh,
+    einstellungen: ladeEinstellungen,
     oeffne: oeffne,
     vorbereiten: vorbereiten,
     commit: commit,

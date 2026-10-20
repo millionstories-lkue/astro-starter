@@ -45,6 +45,7 @@ Ein- und ausschalten in **`src/projekt.config.ts`** (`aktiv: true`), dort auch A
 - `src/lib/cms-bild.ts` – Bilder aus dem CMS für die Bildoptimierung (auch Unterordner) und zentrale Bildbeschreibungen (`cmsAlt`)
 - `src/integrations/bilder-aufraeumen.mjs` – entfernt nach dem Build ungenutzte Originalbilder (hält die Website unter dem Speicherlimit von Deploy Now)
 - `public/admin/mediathek.js` – Mediathek im CMS: alle Bilder an einem Ort (Menü „Medien“ und jedes Bildfeld), Hochladen, Beschreibungen, Löschen nur nicht verwendeter Bilder
+- `public/admin/cms-anpassungen.js` – CMS-Oberfläche: Knopf „Speichern“, Etiketten Veröffentlicht/Entwurf in den Übersichten, Feld „Tag-Liste“ (Umbenennen/Löschen wird in alle Einträge übernommen)
 - `public/admin/galerie-widget.js` – CMS-Feld „Galerie“: mehrere Fotos auf einmal hochladen oder aus der Mediathek wählen, per Ziehen sortieren
 - `public/admin/vorschau.js` – nur noch für ältere Projekte ohne Mediathek (in neuen Projekten nicht einbinden)
 - `src/components/Kontaktformular.astro`, `src/components/Rechtstext.astro`, `src/layouts/BaseLayout.astro`
