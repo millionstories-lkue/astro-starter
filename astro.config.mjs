@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import sitemap from './src/integrations/sitemap.mjs';
 import bilderAufraeumen from './src/integrations/bilder-aufraeumen.mjs';
+import indexnow from './src/integrations/indexnow.mjs';
 
 export default defineConfig({
   // TODO pro Kunde: endgültige Domain eintragen (für Canonical-URLs, Open Graph und Sitemap)
@@ -9,7 +10,8 @@ export default defineConfig({
   output: 'static',
   // Zwischenspeicher für optimierte Bilder (beim Veröffentlichen wiederverwendet)
   cacheDir: './.astro-cache',
-  integrations: [tailwind(), sitemap(), bilderAufraeumen()],
+  // indexnow() meldet geänderte Seiten an Suchmaschinen (muss nach sitemap() stehen)
+  integrations: [tailwind(), sitemap(), bilderAufraeumen(), indexnow()],
   image: {
     domains: [],
     remotePatterns: [],
