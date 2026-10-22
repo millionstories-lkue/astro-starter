@@ -6,7 +6,7 @@ import Footer from '@/components/Footer.astro';
 import { projekt } from '@/projekt.config';
 ---
 
-<BaseLayout title={`Seite nicht gefunden | ${projekt.firmenname}`} description="Die angeforderte Seite wurde nicht gefunden.">
+<BaseLayout title={`Seite nicht gefunden | ${projekt.firmenname}`} description="Die angeforderte Seite wurde nicht gefunden." noindex>
   <Header slot="header" />
   <section class="mx-auto max-w-2xl px-6 py-24 text-center">
     <p class="text-sm font-semibold uppercase tracking-wide text-brand">Fehler 404</p>

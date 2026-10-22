@@ -5,10 +5,19 @@
  *  - dist/sitemap.xml  mit allen gebauten Seiten (auch CMS-Projektseiten)
  *  - ergänzt dist/robots.txt um die Zeile "Sitemap: https://…/sitemap.xml"
  *
- * Voraussetzung: `site` ist in astro.config.mjs gesetzt.
- * Diese Datei nicht verändern.
+ * Nicht in die Sitemap kommen Seiten, die nicht in Google erscheinen sollen:
+ * 404/500, Seiten mit <meta name="robots" content="noindex…"> und Weiterleitungsseiten
+ * (Astro.redirect / meta refresh). Sonst meldet die Google Search Console
+ * „Durch noindex ausgeschlossen“ bzw. „Seite mit Weiterleitung“.
+ *
+ * Voraussetzung: `site` ist in astro.config.mjs auf die echte Domain gesetzt
+ * (steht dort noch die Platzhalter-Domain, erscheint beim Build eine Warnung).
+ * Diese Datei ist Teil des Starter-Repos – nicht verändern.
  */
 import { readFile, writeFile } from 'node:fs/promises';
+
+const NOINDEX = /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i;
+const WEITERLEITUNG = /<meta[^>]+http-equiv=["']refresh["']/i;
 
 const AUSGESCHLOSSEN = /^(404|500)\/?$/;
 
@@ -28,10 +37,27 @@ export default function sitemap() {
           return;
         }
 
+        if (/kundendomain|example\.com/i.test(site)) {
+          logger.warn('ACHTUNG: In astro.config.mjs steht noch die Platzhalter-Domain (' + site + '). Bitte `site` auf die echte Domain setzen – sonst zeigen Canonical-Adressen und Sitemap auf die falsche Seite.');
+        }
+
         const basis = site.replace(/\/+$/, '');
-        const pfade = [...new Set(pages.map((p) => p.pathname))]
-          .filter((p) => !AUSGESCHLOSSEN.test(p))
-          .sort((a, b) => a.length - b.length || a.localeCompare(b));
+        const alle = [...new Set(pages.map((p) => p.pathname))].filter((p) => !AUSGESCHLOSSEN.test(p));
+        const ausgelassen = [];
+        const pfade = [];
+        for (const p of alle) {
+          let html = '';
+          try {
+            html = await readFile(new URL(`${p}${p === '' || p.endsWith('/') ? '' : '/'}index.html`, dir), 'utf8');
+          } catch {
+            try {
+              html = await readFile(new URL(p.replace(/\/$/, '') + '.html', dir), 'utf8');
+            } catch {}
+          }
+          if (NOINDEX.test(html) || WEITERLEITUNG.test(html)) ausgelassen.push(p);
+          else pfade.push(p);
+        }
+        pfade.sort((a, b) => a.length - b.length || a.localeCompare(b));
 
         const eintraege = pfade
           .map((p) => {
@@ -62,7 +88,10 @@ export default function sitemap() {
           await writeFile(robotsUrl, robots, 'utf8');
         }
 
-        logger.info(`Sitemap mit ${pfade.length} Seiten erzeugt.`);
+        logger.info(
+          `Sitemap mit ${pfade.length} Seiten erzeugt` +
+            (ausgelassen.length ? ` (${ausgelassen.length} Weiterleitungs- bzw. noindex-Seiten ausgelassen).` : '.'),
+        );
       },
     },
   };

@@ -5,9 +5,11 @@ interface Props {
   title: string;
   description: string;
   image?: string;
+  /** Nur für Seiten, die nicht in Google erscheinen sollen (404). Alle anderen Seiten bleiben indexierbar. */
+  noindex?: boolean;
 }
 
-const { title, description, image = '/default-og.jpg' } = Astro.props;
+const { title, description, image = '/default-og.jpg', noindex = false } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.com');
 ---
 
@@ -40,7 +42,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
   <slot name="head" />
 
   <!-- Robots & AI Crawlability -->
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta
+    name="robots"
+    content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}
+  />
 </head>
 <body class="bg-white text-slate-900 antialiased min-h-screen flex flex-col">
   <!-- Barrierefreiheit: Tastaturnutzer können die Navigation überspringen -->
