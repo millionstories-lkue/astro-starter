@@ -321,6 +321,17 @@ export async function getEintraege(id: BausteinId): Promise<Eintrag[]> {
   );
 }
 
+/**
+ * Entwürfe eines Bausteins (Schalter „Veröffentlicht“ aus). Sie erscheinen nirgends auf der
+ * öffentlichen Website, werden aber unter der geheimen Vorschau-Adresse gebaut
+ * (src/integrations/entwuerfe.mjs, Schlüssel in src/data/vorschau.json).
+ */
+export async function getEntwuerfe(id: BausteinId): Promise<Eintrag[]> {
+  if (!hatEintraege(id)) return [];
+  const roh = (await getCollection(id)) as EintragDaten[];
+  return roh.filter((e) => (e.data as any).veroeffentlicht === false).map((e) => zuEintrag(id, e));
+}
+
 /** Die neuesten Einträge (Events: die nächsten kommenden Termine) – z. B. für die Startseite */
 export async function neuesteEintraege(id: BausteinId, anzahl = 3): Promise<Eintrag[]> {
   if (!istAktiv(id)) return [];
@@ -457,14 +468,28 @@ export async function llmsAbschnitte(site: URL | string): Promise<string> {
 
 /* ---------- Häufige Fragen aller Seiten (für llms.txt) ---------- */
 
-const seitenDateien = import.meta.glob<{ default: { faq?: { fragen?: { frage?: string; antwort?: string }[] } } }>(
+const seitenDateien = import.meta.glob<{
+  default: { veroeffentlicht?: boolean; faq?: { fragen?: { frage?: string; antwort?: string }[] } };
+}>(
   '/src/data/seiten/*.json',
   { eager: true },
 );
 
-/** Markdown-Abschnitt mit allen FAQ-Fragen aus src/data/seiten/*.json (Feld „faq“) – leer, wenn es keine gibt */
+/**
+ * Ist die Seite src/data/seiten/<name>.json veröffentlicht? Fehlt die Datei oder der Schalter
+ * „veroeffentlicht“, gilt sie als veröffentlicht. Für Menü, Footer und Verlinkungen:
+ *   {seiteVeroeffentlicht('aktion') && <a href="/aktion/">Aktion</a>}
+ * Seiten im Entwurf werden so nirgends verlinkt (ihre Adresse gibt es öffentlich nicht).
+ */
+export function seiteVeroeffentlicht(name: string): boolean {
+  return seitenDateien[`/src/data/seiten/${name}.json`]?.default?.veroeffentlicht !== false;
+}
+
+/** Markdown-Abschnitt mit allen FAQ-Fragen aus src/data/seiten/*.json (Feld „faq“) – leer, wenn es keine gibt.
+ *  Seiten im Entwurf („veroeffentlicht“: false) werden übersprungen. */
 export function llmsHaeufigeFragen(): string {
   const fragen = Object.values(seitenDateien)
+    .filter((d) => d.default?.veroeffentlicht !== false)
     .flatMap((d) => d.default?.faq?.fragen ?? [])
     .map((f) => ({ frage: f.frage?.trim() ?? '', antwort: f.antwort?.trim() ?? '' }))
     .filter((f) => f.frage && f.antwort);

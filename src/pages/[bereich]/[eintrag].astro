@@ -9,10 +9,13 @@ import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
 import Detail from '@/components/bausteine/Detail.astro';
 import { projekt } from '@/projekt.config';
-import { aktiveBausteine, brotkrumenSchema, eintragSchema, getEintraege, type Eintrag } from '@/lib/bausteine';
+import { aktiveBausteine, brotkrumenSchema, eintragSchema, getEintraege, getEntwuerfe, type Eintrag } from '@/lib/bausteine';
 
 export async function getStaticPaths() {
-  const seiten: { params: { bereich: string; eintrag: string }; props: { eintrag: Eintrag; vorher?: Eintrag; nachher?: Eintrag } }[] = [];
+  const seiten: {
+    params: { bereich: string; eintrag: string };
+    props: { eintrag: Eintrag; vorher?: Eintrag; nachher?: Eintrag; entwurf?: boolean };
+  }[] = [];
   for (const b of aktiveBausteine()) {
     const eintraege = await getEintraege(b.id);
     eintraege.forEach((eintrag, i) =>
@@ -21,11 +24,16 @@ export async function getStaticPaths() {
         props: { eintrag, vorher: eintraege[i - 1], nachher: eintraege[i + 1] },
       }),
     );
+    // Entwürfe: werden nach dem Build unter die geheime Vorschau-Adresse verschoben
+    // (src/integrations/entwuerfe.mjs) und sind nirgends verlinkt
+    for (const eintrag of await getEntwuerfe(b.id)) {
+      seiten.push({ params: { bereich: b.pfad, eintrag: eintrag.slug }, props: { eintrag, entwurf: true } });
+    }
   }
   return seiten;
 }
 
-const { eintrag, vorher, nachher } = Astro.props as { eintrag: Eintrag; vorher?: Eintrag; nachher?: Eintrag };
+const { eintrag, vorher, nachher, entwurf = false } = Astro.props as { eintrag: Eintrag; vorher?: Eintrag; nachher?: Eintrag; entwurf?: boolean };
 const site = Astro.site ?? Astro.url;
 
 // Vorschaubild für Social Media und Bilder für Schema.org
@@ -42,7 +50,7 @@ const beschreibung =
   eintrag.kurztext ?? (eintrag.termin ? `${eintrag.termin.text}: ${eintrag.titel}` : `${eintrag.titel} – ${projekt.firmenname}`);
 ---
 
-<BaseLayout title={titel} description={beschreibung} image={og?.src}>
+<BaseLayout title={titel} description={beschreibung} image={og?.src} entwurf={entwurf}>
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(schema)} />
   <Header slot="header" />
   <Detail eintrag={eintrag} vorher={vorher} nachher={nachher} />

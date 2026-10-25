@@ -7,9 +7,14 @@ interface Props {
   image?: string;
   /** Nur für Seiten, die nicht in Google erscheinen sollen (404). Alle anderen Seiten bleiben indexierbar. */
   noindex?: boolean;
+  /**
+   * Entwurf (Schalter „Veröffentlicht“ aus): Die Seite wird nach dem Build unter die geheime
+   * Vorschau-Adresse verschoben (src/integrations/entwuerfe.mjs) und ist für Suchmaschinen gesperrt.
+   */
+  entwurf?: boolean;
 }
 
-const { title, description, image = '/default-og.jpg', noindex = false } = Astro.props;
+const { title, description, image = '/default-og.jpg', noindex = false, entwurf = false } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.com');
 ---
 
@@ -24,7 +29,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
   <title>{title}</title>
   <meta name="title" content={title} />
   <meta name="description" content={description} />
-  <link rel="canonical" href={canonicalURL} />
+  {entwurf ? <meta name="ms-entwurf" content="ja" /> : <link rel="canonical" href={canonicalURL} />}
 
   <!-- Open Graph / Facebook / LinkedIn -->
   <meta property="og:type" content="website" />
@@ -36,7 +41,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
   <meta name="twitter:card" content="summary_large_image" />
 
   <!-- Sitemap für Suchmaschinen -->
-  <link rel="sitemap" href="/sitemap.xml" />
+  {!entwurf && <link rel="sitemap" href="/sitemap.xml" />}
 
   <!-- Seitenspezifische Ergänzungen im <head> (z. B. JSON-LD) -->
   <slot name="head" />
@@ -44,7 +49,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
   <!-- Robots & AI Crawlability -->
   <meta
     name="robots"
-    content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}
+    content={
+      entwurf
+        ? 'noindex, nofollow'
+        : noindex
+          ? 'noindex, follow'
+          : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+    }
   />
 </head>
 <body class="bg-white text-slate-900 antialiased min-h-screen flex flex-col">

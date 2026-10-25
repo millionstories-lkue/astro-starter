@@ -7,6 +7,10 @@
  * Aktive Bausteine (Portfolio, Blog, Events) automatisch in die Navigation aufnehmen:
  *   import { aktiveBausteine } from '@/lib/bausteine';
  *   aktiveBausteine().map((b) => <a href={b.url}>{b.name}</a>)
+ *
+ * Seiten mit Schalter „Veröffentlicht“ (z. B. Landingpages) nur verlinken, wenn sie veröffentlicht sind:
+ *   import { seiteVeroeffentlicht } from '@/lib/bausteine';
+ *   ...(seiteVeroeffentlicht('aktion') ? [{ name: 'Aktion', url: '/aktion/' }] : [])
  */
 import { projekt } from '@/projekt.config';
 import { aktiveBausteine } from '@/lib/bausteine';

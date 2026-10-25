@@ -6,8 +6,8 @@
  *  - ergänzt dist/robots.txt um die Zeile "Sitemap: https://…/sitemap.xml"
  *
  * Nicht in die Sitemap kommen Seiten, die nicht in Google erscheinen sollen:
- * 404/500, Seiten mit <meta name="robots" content="noindex…"> und Weiterleitungsseiten
- * (Astro.redirect / meta refresh). Sonst meldet die Google Search Console
+ * 404/500, Seiten mit <meta name="robots" content="noindex…">, Weiterleitungsseiten
+ * (Astro.redirect / meta refresh) und Entwürfe (Vorschau-Adresse, siehe entwuerfe.mjs). Sonst meldet die Google Search Console
  * „Durch noindex ausgeschlossen“ bzw. „Seite mit Weiterleitung“.
  *
  * Voraussetzung: `site` ist in astro.config.mjs auf die echte Domain gesetzt
@@ -46,7 +46,8 @@ export default function sitemap() {
         const ausgelassen = [];
         const pfade = [];
         for (const p of alle) {
-          let html = '';
+          if (p.startsWith('vorschau/')) continue;
+          let html = null;
           try {
             html = await readFile(new URL(`${p}${p === '' || p.endsWith('/') ? '' : '/'}index.html`, dir), 'utf8');
           } catch {
@@ -54,6 +55,8 @@ export default function sitemap() {
               html = await readFile(new URL(p.replace(/\/$/, '') + '.html', dir), 'utf8');
             } catch {}
           }
+          // Datei nicht (mehr) da, z. B. Entwurf, der unter die Vorschau-Adresse verschoben wurde
+          if (html === null) continue;
           if (NOINDEX.test(html) || WEITERLEITUNG.test(html)) ausgelassen.push(p);
           else pfade.push(p);
         }

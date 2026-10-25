@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
+import entwuerfe from './src/integrations/entwuerfe.mjs';
 import sitemap from './src/integrations/sitemap.mjs';
 import bilderAufraeumen from './src/integrations/bilder-aufraeumen.mjs';
 import indexnow from './src/integrations/indexnow.mjs';
@@ -10,8 +11,9 @@ export default defineConfig({
   output: 'static',
   // Zwischenspeicher für optimierte Bilder (beim Veröffentlichen wiederverwendet)
   cacheDir: './.astro-cache',
+  // entwuerfe() legt Entwürfe unter der geheimen Vorschau-Adresse ab (muss vor sitemap() stehen),
   // indexnow() meldet geänderte Seiten an Suchmaschinen (muss nach sitemap() stehen)
-  integrations: [tailwind(), sitemap(), bilderAufraeumen(), indexnow()],
+  integrations: [tailwind(), entwuerfe(), sitemap(), bilderAufraeumen(), indexnow()],
   image: {
     domains: [],
     remotePatterns: [],
