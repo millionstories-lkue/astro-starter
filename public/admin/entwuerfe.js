@@ -1,12 +1,16 @@
 /**
  * Entwürfe im CMS (Decap): Vorschaulink, „Als Entwurf kopieren“, Rückfrage beim Offline-Nehmen
  * ------------------------------------------------------------
- * Im geöffneten Eintrag bzw. in der geöffneten Seite erscheint unten links eine kleine Leiste:
+ * Im geöffneten Eintrag bzw. in der geöffneten Seite erscheint unten links eine Leiste – alles an
+ * einer Stelle. Sie enthält den Schalter „Veröffentlicht“ (bedient das Feld „veroeffentlicht“,
+ * das im Formular dafür ausgeblendet wird) und je nach gespeichertem Stand:
  *   - Entwurf:        „Vorschaulink kopieren“ und „Vorschau öffnen“ (geheime Adresse
  *                     /vorschau/<schlüssel>/…, siehe src/integrations/entwuerfe.mjs)
  *   - Veröffentlicht: „Auf der Website ansehen“
- *   - Einträge (Projekte, Blog …): „Als Entwurf kopieren“ – legt eine Kopie des gespeicherten
- *     Stands als Entwurf an (Titel „… (Kopie)“, Adresse „…-kopie“) und öffnet sie.
+ * In der Übersicht von Einträgen (Projekte, Blog …) hat jeder Eintrag rechts einen Knopf
+ * „Als Entwurf kopieren“: legt eine Kopie des gespeicherten Stands als Entwurf an
+ * (Titel „… (Kopie)“, Adresse „…-kopie“) und öffnet sie. Decaps eigenes „Duplizieren“ im
+ * Speichern-Menü ist ausgeblendet (es würde die Kopie mit Schalter „Veröffentlicht“ übernehmen).
  * Wer eine veröffentlichte Seite auf „Entwurf“ stellt, wird vor dem Speichern gefragt,
  * ob sie wirklich offline gehen soll.
  *
@@ -166,7 +170,22 @@
     '.ms-entwurf-leiste .ms-el-haupt:hover{background:#2f58ab}' +
     '.ms-entwurf-leiste .ms-el-info{flex-basis:100%;margin:2px 0 0;font-size:12px;color:#6b7280}' +
     '.ms-entwurf-leiste input{flex:1 1 220px;min-width:0;min-height:30px;padding:0 8px;border:1px solid #cfd3da;border-radius:6px;font:12px ui-monospace,monospace;color:#313d3e}' +
-    '@media (max-width:600px){.ms-entwurf-leiste{left:8px;right:8px;bottom:8px;max-width:none}}';
+    '@media (max-width:600px){.ms-entwurf-leiste{left:8px;right:8px;bottom:8px;max-width:none}}' +
+    '.ms-entwurf-leiste .ms-el-schalter{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 10px 0 4px;margin-right:4px;border-radius:6px;background:transparent;font-weight:600}' +
+    '.ms-entwurf-leiste .ms-el-schalter:hover{background:#f1f3f6}' +
+    '.ms-el-spur{position:relative;width:38px;height:22px;border-radius:11px;background:#c9ced6;transition:background .15s}' +
+    '.ms-el-spur::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}' +
+    '.ms-el-schalter[aria-checked="true"] .ms-el-spur{background:#1b7f3b}' +
+    '.ms-el-schalter[aria-checked="true"] .ms-el-spur::after{transform:translateX(16px)}' +
+    '.ms-entwurf-leiste .ms-el-trenner{width:1px;align-self:stretch;margin:2px 4px;background:#dfe3ea}' +
+    '.ms-entwurf-leiste .ms-el-geaendert{flex-basis:100%;margin:2px 0 0;font-size:12px;font-weight:600;color:#9a5b00}' +
+    '.ms-hat-kopie{position:relative}' +
+    'body.ms-mit-leiste [class*="ControlPaneContainer"]{padding-bottom:150px}' +
+    '.ms-hat-kopie > a h2{padding-right:52px}' +
+    '.ms-kopie-knopf{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:2;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;border:1px solid #dfe3ea;border-radius:8px;background:#fff;color:#5f6673;cursor:pointer}' +
+    '.ms-kopie-knopf:hover,.ms-kopie-knopf:focus-visible{background:#3a69c7;border-color:#3a69c7;color:#fff}' +
+    '.ms-kopie-knopf[disabled]{opacity:.5;cursor:wait}' +
+    '.ms-kopie-knopf.ist-oben{top:10px;transform:none}';
   document.head.appendChild(stil);
 
   var leiste = document.createElement('div');
@@ -175,7 +194,49 @@
   leiste.setAttribute('aria-label', 'Vorschau und Entwurf');
   leiste.hidden = true;
   function anhaengen() {
-    if (!leiste.parentNode && document.body) document.body.appendChild(leiste);
+    if (document.body && leiste.parentNode !== document.body) document.body.appendChild(leiste);
+  }
+
+  /* ---------- Schalter „Veröffentlicht“ in der Leiste ---------- */
+  function originalSchalter() {
+    return document.querySelector('button[id^="veroeffentlicht-field"][role="switch"]');
+  }
+  var schalterEl = document.createElement('button');
+  schalterEl.type = 'button';
+  schalterEl.className = 'ms-el-schalter';
+  schalterEl.setAttribute('role', 'switch');
+  schalterEl.innerHTML = '<span class="ms-el-spur" aria-hidden="true"></span><span>Veröffentlicht</span>';
+  schalterEl.addEventListener('click', function () {
+    var o = originalSchalter();
+    if (o) o.click();
+    setTimeout(abgleichen, 0);
+  });
+  var geaendertEl = document.createElement('p');
+  geaendertEl.className = 'ms-el-geaendert';
+  geaendertEl.textContent = 'Geändert – oben auf „Speichern“ klicken, damit es gilt.';
+
+  /** Leisten-Schalter mit dem Feld abgleichen, Feld im Formular ausblenden */
+  function abgleichen() {
+    var o = originalSchalter();
+    var feld = o && o.closest('[class*="ControlContainer"]');
+    if (!zustand || !o) {
+      schalterEl.hidden = true;
+      geaendertEl.hidden = true;
+      if (feld && feld.dataset.msVersteckt) {
+        feld.style.display = '';
+        delete feld.dataset.msVersteckt;
+      }
+      return;
+    }
+    if (feld && !feld.dataset.msVersteckt) {
+      feld.style.display = 'none';
+      feld.dataset.msVersteckt = '1';
+    }
+    var an = o.getAttribute('aria-checked') === 'true';
+    schalterEl.hidden = false;
+    schalterEl.setAttribute('aria-checked', String(an));
+    var gespeichert = zustand.neu ? false : zustand.veroeffentlicht;
+    geaendertEl.hidden = zustand.laedt || zustand.fehler || an === gespeichert;
   }
 
   var zustand = null; // { info, veroeffentlicht, text, url, schluessel }
@@ -221,9 +282,16 @@
     var z = zustand;
     if (!z) {
       leiste.hidden = true;
+      if (document.body) document.body.classList.remove('ms-mit-leiste');
       return;
     }
     leiste.hidden = false;
+    document.body.classList.add('ms-mit-leiste');
+    leiste.appendChild(schalterEl);
+    var trenner = document.createElement('span');
+    trenner.className = 'ms-el-trenner';
+    leiste.appendChild(trenner);
+    abgleichen();
     if (z.laedt) {
       leiste.appendChild(status('Status wird geladen …', '#c0c4cc'));
       return;
@@ -234,15 +302,13 @@
       return;
     }
     if (z.neu) {
-      leiste.appendChild(status('Noch nicht gespeichert', '#c0c4cc'));
-      leiste.appendChild(info('Nach dem ersten Speichern gibt es hier den Vorschaulink.'));
+      leiste.appendChild(info('Noch nicht gespeichert. Nach dem ersten Speichern gibt es hier den Vorschaulink.'));
+      leiste.appendChild(geaendertEl);
       return;
     }
     if (z.veroeffentlicht) {
-      leiste.appendChild(status('Veröffentlicht', '#1b7f3b'));
       leiste.appendChild(link('Auf der Website ansehen ↗', z.url));
     } else {
-      leiste.appendChild(status('Entwurf', '#8a93a3'));
       if (z.url) {
         leiste.appendChild(
           knopf('Vorschaulink kopieren', 'ms-el-haupt', function () {
@@ -254,8 +320,16 @@
         leiste.appendChild(info('Vorschaulinks sind für diese Website noch nicht eingerichtet (src/data/vorschau.json fehlt).'));
       }
     }
-    if (z.info.kopierbar) leiste.appendChild(knopf('Als Entwurf kopieren', '', alsEntwurfKopieren));
-    if (!z.veroeffentlicht && z.url) leiste.appendChild(info('Nur wer den Link hat, sieht die Seite. Nach „Speichern“ ist die Vorschau in 1–2 Minuten aktuell.'));
+    leiste.appendChild(
+      info(
+        z.veroeffentlicht
+          ? 'Gespeichert als veröffentlicht. Ausschalten und speichern nimmt die Seite offline.'
+          : z.url
+            ? 'Gespeichert als Entwurf. Nur wer den Link hat, sieht die Seite (nach „Speichern“ in 1–2 Minuten aktuell). Einschalten und speichern = online.'
+            : 'Gespeichert als Entwurf.',
+      ),
+    );
+    leiste.appendChild(geaendertEl);
   }
 
   function kopieren(text, knopfEl) {
@@ -347,12 +421,12 @@
     return roh.replace(/^'(.*)'$/, '$1').replace(/''/g, "'");
   }
 
-  function alsEntwurfKopieren() {
-    var z = zustand;
-    if (!z || !z.text || !z.info.kopierbar) return;
-    var inf = z.info;
-    if (!window.confirm('Kopie als Entwurf anlegen?\n\nKopiert wird der zuletzt gespeicherte Stand. Das Original bleibt unverändert' + (z.veroeffentlicht ? ' online.' : '.'))) return;
+  /** Kopie eines gespeicherten Eintrags als Entwurf anlegen und öffnen */
+  function alsEntwurfKopieren(inf, knopfEl) {
+    if (!window.confirm('Kopie als Entwurf anlegen?\n\nKopiert wird der zuletzt gespeicherte Stand. Das Original bleibt unverändert.')) return;
+    if (knopfEl) knopfEl.disabled = true;
     hinweis('Kopie wird angelegt …');
+    var z = {};
     var basis = inf.slug.replace(/-kopie(-\d+)?$/, '') + '-kopie';
     var ext = inf.pfad.slice(inf.pfad.lastIndexOf('.'));
     function freierName(n) {
@@ -361,7 +435,12 @@
         return t === null ? slug : n < 50 ? freierName(n + 1) : Promise.reject(new Error('Kein freier Dateiname gefunden.'));
       });
     }
-    freierName(1)
+    lesen(inf.pfad)
+      .then(function (t) {
+        if (t === null) throw new Error('Der Eintrag ist noch nicht gespeichert.');
+        z.text = t;
+        return freierName(1);
+      })
       .then(function (slug) {
         var text = frontmatterSetzen(z.text, 'veroeffentlicht', 'false');
         var titel = titelLesen(text, inf.titelFeld);
@@ -381,6 +460,7 @@
           }, 600);
         },
         function (f) {
+          if (knopfEl) knopfEl.disabled = false;
           hinweis('Die Kopie konnte nicht angelegt werden: ' + f.message, true, 15000);
         },
       );
@@ -416,6 +496,72 @@
       },
     });
   }
+
+  /* =====================================================================
+   * Übersicht: Knopf „Als Entwurf kopieren“ an jedem Eintrag
+   * ===================================================================== */
+  var KOPIE_ICON =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">' +
+    '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
+
+  function uebersichtKnoepfe() {
+    var mm = location.hash.match(/^#\/collections\/([^/?]+)\/?(\?.*)?$/);
+    if (!mm || !m()) return;
+    var name = decodeURIComponent(mm[1]);
+    ladeKonfig().then(function (k) {
+      var s = k.sammlungen[name];
+      if (!s || !s.folder) return;
+      var links = document.querySelectorAll('a[href^="#/collections/' + name + '/entries/"]');
+      Array.prototype.forEach.call(links, function (a) {
+        var karte = a.parentElement;
+        if (!karte || karte.querySelector(':scope > .ms-kopie-knopf')) return;
+        var slug = decodeURIComponent(a.getAttribute('href').split('/entries/')[1] || '').replace(/\/$/, '');
+        if (!slug) return;
+        var inf = eintragInfo(k, { sammlung: name, slug: slug }) || {
+          sammlung: name,
+          slug: slug,
+          ordner: s.folder.replace(/^\/+|\/+$/g, ''),
+          pfad: s.folder.replace(/^\/+|\/+$/g, '') + '/' + slug + '.' + (s.extension || 'md'),
+          titelFeld: s.identifier_field || 'title',
+          kopierbar: true,
+        };
+        var titel = (a.textContent || slug).replace(/^(Veröffentlicht|Entwurf)/, '').trim();
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'ms-kopie-knopf' + (a.querySelector('img') ? ' ist-oben' : '');
+        b.title = 'Als Entwurf kopieren';
+        b.setAttribute('aria-label', '„' + titel + '“ als Entwurf kopieren');
+        b.innerHTML = KOPIE_ICON;
+        b.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          alsEntwurfKopieren(inf, b);
+        });
+        karte.classList.add('ms-hat-kopie');
+        karte.appendChild(b);
+      });
+    });
+  }
+
+  /** Decaps „Duplizieren“ im Speichern-Menü ausblenden (Kopien sollen immer Entwürfe sein) */
+  function duplizierenAusblenden() {
+    var items = document.querySelectorAll('[role="menuitem"]');
+    Array.prototype.forEach.call(items, function (el) {
+      if (/^\s*(Duplizieren|Speichern und duplizieren|Veröffentlichen und duplizieren)\s*$/i.test(el.textContent || '')) el.style.display = 'none';
+    });
+  }
+
+  var geplant = false;
+  new MutationObserver(function () {
+    if (geplant) return;
+    geplant = true;
+    requestAnimationFrame(function () {
+      geplant = false;
+      duplizierenAusblenden();
+      uebersichtKnoepfe();
+      abgleichen();
+    });
+  }).observe(document.documentElement, { childList: true, subtree: true });
 
   /* =====================================================================
    * Hinweis unten rechts
