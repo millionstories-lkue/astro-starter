@@ -99,6 +99,51 @@
   }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
 
   /* =====================================================================
+   * 2b. Ein einfacher Knopf „Speichern“ (ohne Menü und Pfeil)
+   * Decap zeigt „Speichern ▾“ mit Menü („Jetzt speichern“, „… und duplizieren“ …).
+   * Hier speichert ein Klick sofort; nach dem Speichern steht dort „Gespeichert“.
+   * ===================================================================== */
+  var knopfStil = document.createElement('style');
+  knopfStil.textContent =
+    '[class*="StyledDropdownButton"][class*="PublishButton"]::after,[class*="StyledDropdownButton"][class*="PublishedToolbarButton"]::after{display:none!important}' +
+    '[class*="StyledDropdownButton"][class*="PublishButton"],[class*="StyledDropdownButton"][class*="PublishedToolbarButton"]{padding-right:20px!important}' +
+    '[class*="StyledDropdownButton"][class*="PublishedToolbarButton"]{cursor:default!important}' +
+    'body.ms-speichert [class*="DropdownList"]{visibility:hidden!important}';
+  document.head.appendChild(knopfStil);
+
+  function speichernKnopf(ziel) {
+    return ziel && ziel.closest && ziel.closest('[class*="StyledDropdownButton"][class*="PublishButton"],[class*="StyledDropdownButton"][class*="PublishedToolbarButton"]');
+  }
+  function sofortSpeichern(ev) {
+    var k = speichernKnopf(ev.target);
+    if (!k) return;
+    if (ev.type === 'keydown' && ev.key !== 'Enter' && ev.key !== ' ') return;
+    // „Gespeichert“: nichts zu tun
+    if (/PublishedToolbarButton/.test(k.className)) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
+    // Menü unsichtbar öffnen lassen und sofort „Jetzt speichern“ wählen
+    document.body.classList.add('ms-speichert');
+    var versuche = 0;
+    (function waehlen() {
+      var punkt = Array.prototype.find.call(document.querySelectorAll('[role="menuitem"]'), function (el) {
+        return /^\s*Jetzt speichern\s*$/.test(el.textContent || '');
+      });
+      if (punkt) {
+        punkt.click();
+        setTimeout(function () {
+          document.body.classList.remove('ms-speichert');
+        }, 50);
+      } else if (versuche++ < 20) setTimeout(waehlen, 25);
+      else document.body.classList.remove('ms-speichert');
+    })();
+  }
+  document.addEventListener('click', sofortSpeichern, true);
+  document.addEventListener('keydown', sofortSpeichern, true);
+
+  /* =====================================================================
    * 3. Tag-Liste
    * ===================================================================== */
   if (!window.createClass || !h) return;

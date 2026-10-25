@@ -8,8 +8,9 @@
  *                     /vorschau/<schlüssel>/…, siehe src/integrations/entwuerfe.mjs)
  *   - Veröffentlicht: „Auf der Website ansehen“
  * In der Übersicht von Einträgen (Projekte, Blog …) hat jeder Eintrag rechts einen Knopf
- * „Als Entwurf kopieren“: legt eine Kopie des gespeicherten Stands als Entwurf an
- * (Titel „… (Kopie)“, Adresse „…-kopie“) und öffnet sie. Decaps eigenes „Duplizieren“ im
+ * „Als Entwurf kopieren“: fragt nach dem Titel der Kopie, bildet daraus die Adresse (wie
+ * beim Anlegen), legt die Kopie des gespeicherten Stands als Entwurf an und öffnet sie.
+ * In der Übersicht von Seiten zeigt ein Etikett „Veröffentlicht“ / „Entwurf“, welche Seite live ist. Decaps eigenes „Duplizieren“ im
  * Speichern-Menü ist ausgeblendet (es würde die Kopie mit Schalter „Veröffentlicht“ übernehmen).
  * Wer eine veröffentlichte Seite auf „Entwurf“ stellt, wird vor dem Speichern gefragt,
  * ob sie wirklich offline gehen soll.
@@ -421,46 +422,70 @@
     return roh.replace(/^'(.*)'$/, '$1').replace(/''/g, "'");
   }
 
+  /** Adresse aus dem Titel bilden – wie Decap (slug: ascii, clean_accents, Ersatz „-“) */
+  function slugAus(titel) {
+    return String(titel || '')
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/ß/g, 'ss')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80)
+      .replace(/-+$/, '');
+  }
+
   /** Kopie eines gespeicherten Eintrags als Entwurf anlegen und öffnen */
   function alsEntwurfKopieren(inf, knopfEl) {
-    if (!window.confirm('Kopie als Entwurf anlegen?\n\nKopiert wird der zuletzt gespeicherte Stand. Das Original bleibt unverändert.')) return;
     if (knopfEl) knopfEl.disabled = true;
-    hinweis('Kopie wird angelegt …');
-    var z = {};
-    var basis = inf.slug.replace(/-kopie(-\d+)?$/, '') + '-kopie';
-    var ext = inf.pfad.slice(inf.pfad.lastIndexOf('.'));
-    function freierName(n) {
-      var slug = n === 1 ? basis : basis + '-' + n;
-      return lesen(inf.ordner + '/' + slug + ext).then(function (t) {
-        return t === null ? slug : n < 50 ? freierName(n + 1) : Promise.reject(new Error('Kein freier Dateiname gefunden.'));
-      });
+    function ende() {
+      if (knopfEl) knopfEl.disabled = false;
     }
+    var ext = inf.pfad.slice(inf.pfad.lastIndexOf('.'));
+    var text = null;
+    var titel = '';
     lesen(inf.pfad)
       .then(function (t) {
         if (t === null) throw new Error('Der Eintrag ist noch nicht gespeichert.');
-        z.text = t;
+        text = t;
+        var alt = titelLesen(t, inf.titelFeld);
+        var eingabe = window.prompt(
+          'Kopie als Entwurf anlegen\n\nTitel der Kopie – daraus entsteht auch die Adresse der Seite (sie lässt sich später nicht mehr ändern). Kopiert wird der zuletzt gespeicherte Stand, das Original bleibt unverändert.',
+          alt,
+        );
+        if (eingabe === null || !eingabe.trim()) return null;
+        titel = eingabe.trim();
+        var basis = slugAus(titel) || inf.slug + '-kopie';
+        hinweis('Kopie wird angelegt …');
+        function freierName(n) {
+          var slug = n === 1 ? basis : basis + '-' + n;
+          return lesen(inf.ordner + '/' + slug + ext).then(function (x) {
+            return x === null ? slug : n < 50 ? freierName(n + 1) : Promise.reject(new Error('Kein freier Dateiname gefunden.'));
+          });
+        }
         return freierName(1);
       })
       .then(function (slug) {
-        var text = frontmatterSetzen(z.text, 'veroeffentlicht', 'false');
-        var titel = titelLesen(text, inf.titelFeld);
-        if (titel) text = frontmatterSetzen(text, inf.titelFeld, JSON.stringify(titel.replace(/\s*\(Kopie\)$/, '') + ' (Kopie)'));
+        if (!slug) return null;
+        var neu = frontmatterSetzen(text, 'veroeffentlicht', 'false');
+        neu = frontmatterSetzen(neu, inf.titelFeld, JSON.stringify(titel));
         return m()
-          .commit([{ pfad: inf.ordner + '/' + slug + ext, text: text }], 'Entwurf kopiert: ' + inf.sammlung + ' „' + slug + '“')
+          .commit([{ pfad: inf.ordner + '/' + slug + ext, text: neu }], 'Entwurf kopiert: ' + inf.sammlung + ' „' + slug + '“')
           .then(function () {
             return slug;
           });
       })
       .then(
         function (slug) {
-          hinweis('Kopie angelegt – sie wird geöffnet …');
+          if (!slug) return ende();
+          hinweis('Kopie angelegt (Adresse: ' + slug + ') – sie wird geöffnet …');
           setTimeout(function () {
             location.hash = '#/collections/' + encodeURIComponent(inf.sammlung) + '/entries/' + encodeURIComponent(slug);
             location.reload();
           }, 600);
         },
         function (f) {
-          if (knopfEl) knopfEl.disabled = false;
+          ende();
           hinweis('Die Kopie konnte nicht angelegt werden: ' + f.message, true, 15000);
         },
       );
@@ -510,6 +535,7 @@
     var name = decodeURIComponent(mm[1]);
     ladeKonfig().then(function (k) {
       var s = k.sammlungen[name];
+      if (s && !s.folder) return seitenEtiketten(s);
       if (!s || !s.folder) return;
       var links = document.querySelectorAll('a[href^="#/collections/' + name + '/entries/"]');
       Array.prototype.forEach.call(links, function (a) {
@@ -540,6 +566,41 @@
         karte.classList.add('ms-hat-kopie');
         karte.appendChild(b);
       });
+    });
+  }
+
+  /** Seiten (feste Dateien): Etikett „Veröffentlicht“ / „Entwurf“ vor dem Namen */
+  var seitenStatus = {}; // Pfad → Promise<boolean>
+  function seitenEtiketten(s) {
+    var mitSchalter = Object.keys(s.dateien).some(function (n) {
+      return s.dateien[n].vorschau_pfad;
+    });
+    if (!mitSchalter) return;
+    var links = document.querySelectorAll('a[href^="#/collections/' + s.name + '/entries/"]');
+    Array.prototype.forEach.call(links, function (a) {
+      var h2 = a.querySelector('h2') || a;
+      if (h2.dataset.msStatus) return;
+      var name = decodeURIComponent(a.getAttribute('href').split('/entries/')[1] || '').replace(/\/$/, '');
+      var d = s.dateien[name];
+      if (!d || !d.file) return;
+      h2.dataset.msStatus = '1';
+      var pfad = d.file.replace(/^\/+/, '');
+      if (!seitenStatus[pfad]) {
+        seitenStatus[pfad] = lesen(pfad).then(function (t) {
+          return t === null ? null : istVeroeffentlicht(t, pfad);
+        });
+      }
+      seitenStatus[pfad].then(function (an) {
+        if (an === null || h2.querySelector('.ms-status')) return;
+        var marke = document.createElement('span');
+        marke.className = 'ms-status';
+        marke.textContent = an ? 'Veröffentlicht' : 'Entwurf';
+        marke.style.color = an ? '#1b7f3b' : '#5f6673';
+        marke.style.background = an ? '#e3f4e8' : '#eceef2';
+        h2.style.justifyContent = 'flex-start';
+        h2.style.alignItems = 'center';
+        h2.insertBefore(marke, h2.firstChild);
+      }, function () {});
     });
   }
 
@@ -586,6 +647,7 @@
   }
 
   window.addEventListener('hashchange', function () {
+    seitenStatus = {};
     aktualisieren(false);
   });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () {
