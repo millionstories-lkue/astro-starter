@@ -1,0 +1,71 @@
+# Entwürfe für die Vorschau im CMS
+# Baut nach jeder Änderung die Website mit allen Entwürfen (Schalter „Veröffentlicht“ aus)
+# und legt nur die Entwurfsseiten privat im Repo ab – unter refs/vorschau/entwuerfe
+# (kein Zweig, deshalb reagiert Deploy Now nicht darauf und nichts davon kommt auf die Website).
+# Die Vorschauseite im CMS (public/admin/entwurf.html) zeigt sie nur angemeldeten Personen.
+# Gibt es keine Entwürfe, dauert der Ablauf nur wenige Sekunden.
+name: Entwürfe für das CMS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: entwuerfe
+  cancel-in-progress: true
+
+jobs:
+  entwuerfe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gibt es Entwürfe?
+        id: pruefen
+        run: |
+          if grep -rlqE '^veroeffentlicht:[[:space:]]*false|"veroeffentlicht":[[:space:]]*false' src/data 2>/dev/null; then
+            echo "da=ja" >> "$GITHUB_OUTPUT"
+          else
+            echo "da=nein" >> "$GITHUB_OUTPUT"
+            echo "Keine Entwürfe – die Vorschau-Ablage wird geleert."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.pruefen.outputs.da == 'ja'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Bilder-Zwischenspeicher laden
+        if: steps.pruefen.outputs.da == 'ja'
+        uses: actions/cache@v4
+        with:
+          path: .astro-cache
+          key: astro-entwuerfe-${{ github.sha }}
+          restore-keys: |
+            astro-entwuerfe-
+            astro-bilder-
+
+      - name: Website mit Entwürfen bauen
+        if: steps.pruefen.outputs.da == 'ja'
+        env:
+          ENTWURF_ABLAGE: .entwuerfe
+        run: |
+          npm ci
+          npm run build
+
+      - name: Entwürfe privat im Repo ablegen
+        run: |
+          mkdir -p .entwuerfe
+          cd .entwuerfe
+          git init -q
+          git config user.name "Entwürfe"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -q --allow-empty -m "Entwürfe für die Vorschau im CMS (${GITHUB_SHA::7})"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:refs/vorschau/entwuerfe
+          echo "Abgelegt: $(git ls-files | grep -c 'index.html$' || true) Entwurfsseite(n)"
