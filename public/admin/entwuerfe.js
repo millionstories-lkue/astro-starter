@@ -509,6 +509,8 @@
       var s = k.sammlungen[name];
       if (s && !s.folder) return seitenEtiketten(s);
       if (!s || !s.folder) return;
+      // Kopieren nur für Einträge mit Text (Markdown), nicht z. B. für Weiterleitungen (JSON)
+      if (s.extension && s.extension !== 'md') return;
       var links = document.querySelectorAll('a[href^="#/collections/' + name + '/entries/"]');
       Array.prototype.forEach.call(links, function (a) {
         var karte = a.parentElement;

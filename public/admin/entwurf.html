@@ -82,49 +82,29 @@
         });
       }
 
-      /** Bilder, die nur Entwürfe verwenden, liegen privat in der Ablage (_astro/…): mit Anmeldung laden */
+      /**
+       * Bilder, die nur Entwürfe verwenden, liegen privat in der Ablage (_astro/…). Sie werden erst
+       * geladen, wenn die Seite sie braucht: Schlägt ein Bild auf der Website fehl (gibt es dort
+       * nicht), holt ein kleines Skript es mit der Anmeldung aus der Ablage.
+       */
       function bilderEinsetzen(repo, sha, html) {
-        var namen = {};
-        (html.match(/\/_astro\/[^"'\s),?#]+\.(?:webp|avif|jpe?g|png|gif|svg)/gi) || []).forEach(function (n) {
-          namen[n] = true;
-        });
-        var liste = Object.keys(namen);
-        if (!liste.length) return html;
         return gh('/repos/' + repo + '/git/trees/' + sha + '?recursive=1').then(function (baum) {
           var blobs = {};
           (baum.tree || []).forEach(function (e) {
-            if (e.type === 'blob') blobs['/' + e.path] = e.sha;
+            if (e.type === 'blob' && /^_astro\//.test(e.path)) blobs['/' + e.path] = e.sha;
           });
-          var offen = liste.filter(function (n) {
-            return blobs[n];
-          });
-          var ersatz = {};
-          var i = 0;
-          function weiter() {
-            if (i >= offen.length) return Promise.resolve();
-            var n = offen[i++];
-            return fetch(GH + '/repos/' + repo + '/git/blobs/' + blobs[n], {
-              headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github.raw' },
-            })
-              .then(function (r) {
-                return r.ok ? r.blob() : null;
-              })
-              .then(function (b) {
-                if (b) {
-                  var endung = n.split('.').pop().toLowerCase();
-                  var typ = { webp: 'image/webp', avif: 'image/avif', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', svg: 'image/svg+xml' }[endung];
-                  ersatz[n] = URL.createObjectURL(typ ? new Blob([b], { type: typ }) : b);
-                }
-              }, function () {})
-              .then(weiter);
-          }
-          // 6 Bilder gleichzeitig laden
-          return Promise.all([weiter(), weiter(), weiter(), weiter(), weiter(), weiter()]).then(function () {
-            Object.keys(ersatz).forEach(function (n) {
-              html = html.split(n).join(ersatz[n]);
-            });
-            return html;
-          });
+          var daten = JSON.stringify({ repo: repo, blobs: blobs }).replace(/</g, '\\u003c');
+          var skript =
+            '<script>(function(){var D=' + daten + ',G="https://api.github.com",T="",C={};' +
+            'try{var u=JSON.parse(localStorage.getItem("decap-cms-user")||localStorage.getItem("netlify-cms-user")||"null");T=(u&&u.token)||"";}catch(e){}' +
+            'function holen(p){if(!C[p])C[p]=fetch(G+"/repos/"+D.repo+"/git/blobs/"+D.blobs[p],{headers:{Authorization:"token "+T,Accept:"application/vnd.github.raw"}})' +
+            '.then(function(r){if(!r.ok)throw 0;return r.blob();}).then(function(b){var t={webp:"image/webp",avif:"image/avif",jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",gif:"image/gif",svg:"image/svg+xml"}[p.split(".").pop().toLowerCase()];' +
+            'return URL.createObjectURL(t?new Blob([b],{type:t}):b);});return C[p];}' +
+            'document.addEventListener("error",function(e){var el=e.target;if(!el||el.tagName!=="IMG"||el.dataset.entwurfBild)return;' +
+            'var p;try{p=new URL(el.currentSrc||el.src,location.href).pathname;}catch(x){return;}if(!D.blobs[p])return;el.dataset.entwurfBild="1";' +
+            'holen(p).then(function(url){el.removeAttribute("srcset");el.src=url;},function(){});},true);' +
+            'window.entwurfBild=function(p){return D.blobs[p]?holen(p):Promise.resolve(p);};})();<\/script>';
+          return html.replace(/<head([^>]*)>/i, '<head$1>' + skript);
         });
       }
 

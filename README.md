@@ -50,6 +50,7 @@ Ein- und ausschalten in **`src/projekt.config.ts`** (`aktiv: true`), dort auch A
 - `public/admin/entwurf.html` – Vorschau von Entwürfen, nur für Personen, die im CMS angemeldet sind
 - `src/integrations/entwuerfe.mjs` – entfernt Entwürfe (Schalter „Veröffentlicht“ aus) beim Build von der Website; mit ENTWURF_ABLAGE legt es sie für die Vorschau ab
 - `.github/workflows/entwuerfe.yaml` – baut die Entwürfe nach jeder Änderung und legt sie privat im Repo ab (refs/vorschau/entwuerfe, kein Zweig)
+- `src/lib/weiterleitungen.ts`, `src/pages/[...weiterleitung].astro`, `src/integrations/weiterleitungen.mjs` – Weiterleitungen aus dem CMS (Menüpunkt „Weiterleitungen“, Dateien `src/data/weiterleitungen/*.json`): alte oder kurze Adressen dauerhaft (301) auf eine Seite umleiten, echte Seiten haben Vorrang, der Build warnt bei Problemen
 - `public/admin/galerie-widget.js` – CMS-Feld „Galerie“: mehrere Fotos auf einmal hochladen oder aus der Mediathek wählen, per Ziehen sortieren
 - `public/admin/vorschau.js` – nur noch für ältere Projekte ohne Mediathek (in neuen Projekten nicht einbinden)
 - `src/components/Kontaktformular.astro`, `src/components/Rechtstext.astro`, `src/layouts/BaseLayout.astro`

@@ -1,0 +1,14 @@
+---
+/**
+ * Weiterleitungen aus dem CMS (Menüpunkt „Weiterleitungen“) – siehe src/lib/weiterleitungen.ts.
+ * Erzeugt für jede alte Adresse eine dauerhafte Weiterleitung (301) zum Ziel.
+ * Echte Seiten haben immer Vorrang. Teil des Starter-Repos – nicht verändern.
+ */
+import type { GetStaticPaths } from 'astro';
+import { weiterleitungen } from '@/lib/weiterleitungen';
+
+export const getStaticPaths = (() =>
+  weiterleitungen().map((w) => ({ params: { weiterleitung: w.pfad }, props: { ziel: w.ziel } }))) satisfies GetStaticPaths;
+
+return Astro.redirect(Astro.props.ziel, 301);
+---

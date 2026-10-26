@@ -54,7 +54,14 @@
   /* =====================================================================
    * 2. Etiketten „Veröffentlicht“ / „Entwurf“ in den Übersichten
    * ===================================================================== */
-  var ETIKETTEN = { 'Veröffentlicht · ': ['Veröffentlicht', '#1b7f3b', '#e3f4e8'], 'Entwurf · ': ['Entwurf', '#5f6673', '#eceef2'] };
+  var ETIKETTEN = {
+    'Veröffentlicht · ': ['Veröffentlicht', '#1b7f3b', '#e3f4e8'],
+    'Entwurf · ': ['Entwurf', '#5f6673', '#eceef2'],
+    // Weiterleitungen
+    'Aktiv · ': ['Aktiv', '#1b7f3b', '#e3f4e8'],
+    'Aus · ': ['Aus', '#5f6673', '#eceef2'],
+  };
+  var PRAEFIXE = Object.keys(ETIKETTEN);
   var stil = document.createElement('style');
   stil.textContent =
     '.ms-status{display:inline-block;margin-right:8px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;letter-spacing:.02em;vertical-align:middle;line-height:1.6}';
@@ -66,11 +73,11 @@
     var liste = [];
     while ((knoten = gehe.nextNode())) {
       var t = knoten.nodeValue || '';
-      if (t.indexOf('Veröffentlicht · ') === 0 || t.indexOf('Entwurf · ') === 0) liste.push(knoten);
+      if (PRAEFIXE.some(function (p) { return t.indexOf(p) === 0; })) liste.push(knoten);
     }
     liste.forEach(function (k) {
       if (!k.parentNode || k.parentNode.closest('input,textarea,[contenteditable]')) return;
-      var praefix = k.nodeValue.indexOf('Entwurf · ') === 0 ? 'Entwurf · ' : 'Veröffentlicht · ';
+      var praefix = PRAEFIXE.filter(function (p) { return k.nodeValue.indexOf(p) === 0; })[0];
       var e = ETIKETTEN[praefix];
       k.nodeValue = k.nodeValue.slice(praefix.length);
       var vorher = k.previousSibling;
