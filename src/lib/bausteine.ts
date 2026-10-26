@@ -323,8 +323,7 @@ export async function getEintraege(id: BausteinId): Promise<Eintrag[]> {
 
 /**
  * Entwürfe eines Bausteins (Schalter „Veröffentlicht“ aus). Sie erscheinen nirgends auf der
- * öffentlichen Website, werden aber unter der geheimen Vorschau-Adresse gebaut
- * (src/integrations/entwuerfe.mjs, Schlüssel in src/data/vorschau.json).
+ * Website, werden aber für die Vorschau im CMS gebaut (src/integrations/entwuerfe.mjs).
  */
 export async function getEntwuerfe(id: BausteinId): Promise<Eintrag[]> {
   if (!hatEintraege(id)) return [];

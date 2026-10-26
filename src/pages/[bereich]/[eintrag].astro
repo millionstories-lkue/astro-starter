@@ -24,8 +24,8 @@ export async function getStaticPaths() {
         props: { eintrag, vorher: eintraege[i - 1], nachher: eintraege[i + 1] },
       }),
     );
-    // Entwürfe: werden nach dem Build unter die geheime Vorschau-Adresse verschoben
-    // (src/integrations/entwuerfe.mjs) und sind nirgends verlinkt
+    // Entwürfe: werden nach dem Build aus der Website entfernt und nur für die Vorschau
+    // im CMS abgelegt (src/integrations/entwuerfe.mjs)
     for (const eintrag of await getEntwuerfe(b.id)) {
       seiten.push({ params: { bereich: b.pfad, eintrag: eintrag.slug }, props: { eintrag, entwurf: true } });
     }

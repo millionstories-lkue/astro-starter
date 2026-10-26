@@ -8,8 +8,8 @@ interface Props {
   /** Nur für Seiten, die nicht in Google erscheinen sollen (404). Alle anderen Seiten bleiben indexierbar. */
   noindex?: boolean;
   /**
-   * Entwurf (Schalter „Veröffentlicht“ aus): Die Seite wird nach dem Build unter die geheime
-   * Vorschau-Adresse verschoben (src/integrations/entwuerfe.mjs) und ist für Suchmaschinen gesperrt.
+   * Entwurf (Schalter „Veröffentlicht“ aus): Die Seite wird nach dem Build aus der Website entfernt
+   * (src/integrations/entwuerfe.mjs); eine Vorschau gibt es nur im CMS für angemeldete Personen.
    */
   entwurf?: boolean;
 }

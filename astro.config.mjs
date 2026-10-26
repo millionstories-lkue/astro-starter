@@ -11,7 +11,7 @@ export default defineConfig({
   output: 'static',
   // Zwischenspeicher für optimierte Bilder (beim Veröffentlichen wiederverwendet)
   cacheDir: './.astro-cache',
-  // entwuerfe() legt Entwürfe unter der geheimen Vorschau-Adresse ab (muss vor sitemap() stehen),
+  // entwuerfe() nimmt Entwürfe aus der Website, Vorschau nur im CMS (muss vor sitemap() stehen),
   // indexnow() meldet geänderte Seiten an Suchmaschinen (muss nach sitemap() stehen)
   integrations: [tailwind(), entwuerfe(), sitemap(), bilderAufraeumen(), indexnow()],
   image: {

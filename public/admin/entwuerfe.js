@@ -4,8 +4,9 @@
  * Im geöffneten Eintrag bzw. in der geöffneten Seite erscheint unten links eine Leiste – alles an
  * einer Stelle. Sie enthält den Schalter „Veröffentlicht“ (bedient das Feld „veroeffentlicht“,
  * das im Formular dafür ausgeblendet wird) und je nach gespeichertem Stand:
- *   - Entwurf:        „Vorschaulink kopieren“ und „Vorschau öffnen“ (geheime Adresse
- *                     /vorschau/<schlüssel>/…, siehe src/integrations/entwuerfe.mjs)
+ *   - Entwurf:        „Vorschaulink kopieren“ und „Vorschau öffnen“ – die Vorschau
+ *                     (/admin/entwurf.html#/<adresse>/) sehen nur Personen, die im CMS angemeldet
+ *                     sind und Zugriff aufs Repo haben (siehe src/integrations/entwuerfe.mjs)
  *   - Veröffentlicht: „Auf der Website ansehen“
  * In der Übersicht von Einträgen (Projekte, Blog …) hat jeder Eintrag rechts einen Knopf
  * „Als Entwurf kopieren“: fragt nach dem Titel der Kopie, bildet daraus die Adresse (wie
@@ -23,8 +24,6 @@
  *     - name: aktion
  *       file: src/data/seiten/aktion.json
  *       vorschau_pfad: 'aktion/'
- * Der Schlüssel steht in src/data/vorschau.json ({ "schluessel": "…" }) und wird über GitHub
- * gelesen – nur angemeldete Personen sehen ihn.
  *
  * Benötigt mediathek.js (GitHub-Zugriff). Diese Datei ist Teil des Starter-Repos – nicht verändern.
  */
@@ -78,26 +77,6 @@
         return { site: site.replace(/\/+$/, ''), sammlungen: sammlungen };
       });
     return konfig;
-  }
-
-  var schluesselVersprechen = null;
-  function ladeSchluessel() {
-    if (schluesselVersprechen) return schluesselVersprechen;
-    schluesselVersprechen = m()
-      .einstellungen()
-      .then(function (e) {
-        return m().gh('/repos/' + e.repo + '/contents/src/data/vorschau.json?ref=' + encodeURIComponent(e.branch), { roh: 'text' });
-      })
-      .then(
-        function (t) {
-          var k = String((JSON.parse(t) || {}).schluessel || '').trim();
-          return /^[a-z0-9]{12,64}$/.test(k) ? k : '';
-        },
-        function () {
-          return '';
-        },
-      );
-    return schluesselVersprechen;
   }
 
   /** Datei im Repo lesen (null, wenn es sie nicht gibt) */
@@ -310,24 +289,18 @@
     if (z.veroeffentlicht) {
       leiste.appendChild(link('Auf der Website ansehen ↗', z.url));
     } else {
-      if (z.url) {
-        leiste.appendChild(
-          knopf('Vorschaulink kopieren', 'ms-el-haupt', function () {
-            kopieren(z.url, this);
-          }),
-        );
-        leiste.appendChild(link('Vorschau öffnen ↗', z.url));
-      } else {
-        leiste.appendChild(info('Vorschaulinks sind für diese Website noch nicht eingerichtet (src/data/vorschau.json fehlt).'));
-      }
+      leiste.appendChild(
+        knopf('Vorschaulink kopieren', 'ms-el-haupt', function () {
+          kopieren(z.url, this);
+        }),
+      );
+      leiste.appendChild(link('Vorschau öffnen ↗', z.url));
     }
     leiste.appendChild(
       info(
         z.veroeffentlicht
           ? 'Gespeichert als veröffentlicht. Ausschalten und speichern nimmt die Seite offline.'
-          : z.url
-            ? 'Gespeichert als Entwurf. Nur wer den Link hat, sieht die Seite (nach „Speichern“ in 1–2 Minuten aktuell). Einschalten und speichern = online.'
-            : 'Gespeichert als Entwurf.',
+          : 'Gespeichert als Entwurf – nicht auf der Website. Die Vorschau sehen nur Personen, die im CMS angemeldet sind (nach „Speichern“ in 1–3 Minuten aktuell). Einschalten und speichern = online.',
       ),
     );
     leiste.appendChild(geaendertEl);
@@ -374,15 +347,14 @@
         zustand = { info: inf, laedt: true };
         zeichnen();
       }
-      return Promise.all([lesen(inf.pfad), ladeSchluessel()]).then(
-        function (r) {
+      return lesen(inf.pfad).then(
+        function (text) {
           if (nr !== lauf) return;
-          var text = r[0];
           if (text === null) {
             zustand = { info: inf, neu: true };
           } else {
             var veroeffentlicht = istVeroeffentlicht(text, inf.pfad);
-            var url = veroeffentlicht ? k.site + '/' + inf.adresse : r[1] ? k.site + '/vorschau/' + r[1] + '/' + inf.adresse : '';
+            var url = veroeffentlicht ? k.site + '/' + inf.adresse : location.origin + '/admin/entwurf.html#/' + inf.adresse;
             zustand = { info: inf, text: text, veroeffentlicht: veroeffentlicht, url: url };
           }
           zeichnen();

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Vorschau · Entwurf</title>
+  <!--
+    Vorschau von Entwürfen – nur für Personen, die im CMS angemeldet sind.
+    Adresse: /admin/entwurf.html#/<adresse-der-seite>/  (z. B. #/projekte/neues-projekt/)
+    Die Entwurfsseiten baut der GitHub-Ablauf .github/workflows/entwuerfe.yaml und legt sie privat
+    im Repo ab (refs/vorschau/entwuerfe). Diese Seite holt sie mit der GitHub-Anmeldung des CMS –
+    ohne Anmeldung bzw. ohne Zugriff aufs Repo ist nichts zu sehen.
+    Teil des Starter-Repos – nicht verändern.
+  -->
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #eff0f4; color: #313d3e; font: 16px/1.55 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    main { max-width: 520px; margin: 24px; padding: 32px; border-radius: 12px; background: #fff; box-shadow: 0 8px 30px rgba(0, 0, 0, .08); }
+    h1 { margin: 0 0 12px; font-size: 22px; }
+    p { margin: 0 0 12px; }
+    a.knopf { display: inline-block; margin-top: 8px; padding: 10px 16px; border-radius: 8px; background: #3a69c7; color: #fff; font-weight: 600; text-decoration: none; }
+    .klein { font-size: 14px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <main id="meldung" aria-live="polite">
+    <h1>Vorschau wird geladen …</h1>
+  </main>
+  <script>
+    (function () {
+      var GH = 'https://api.github.com';
+      var REF = 'vorschau/entwuerfe';
+      var adresse = decodeURIComponent((location.hash || '').replace(/^#\/?/, '')).replace(/^\/+/, '');
+      if (adresse && !/\/$/.test(adresse) && !/\.html$/.test(adresse)) adresse += '/';
+      var datei = (adresse || '') + (/\.html$/.test(adresse) ? '' : 'index.html');
+
+      function zeigen(titel, text, mitLogin) {
+        var m = document.getElementById('meldung');
+        m.innerHTML = '';
+        var h = document.createElement('h1');
+        h.textContent = titel;
+        m.appendChild(h);
+        (Array.isArray(text) ? text : [text]).forEach(function (t, i) {
+          var p = document.createElement('p');
+          if (i > 0) p.className = 'klein';
+          p.textContent = t;
+          m.appendChild(p);
+        });
+        if (mitLogin) {
+          var a = document.createElement('a');
+          a.className = 'knopf';
+          a.href = '/admin/';
+          a.textContent = 'Im CMS anmelden';
+          m.appendChild(a);
+          var p2 = document.createElement('p');
+          p2.className = 'klein';
+          p2.style.marginTop = '16px';
+          p2.textContent = 'Nach der Anmeldung diesen Link einfach noch einmal öffnen.';
+          m.appendChild(p2);
+        }
+      }
+
+      var token = '';
+      try {
+        var u = JSON.parse(localStorage.getItem('decap-cms-user') || localStorage.getItem('netlify-cms-user') || 'null');
+        token = (u && u.token) || '';
+      } catch (e) {}
+      if (!adresse) return zeigen('Keine Seite angegeben', 'Bitte den Vorschaulink aus dem CMS verwenden.');
+      if (!token) return zeigen('Bitte anmelden', 'Entwürfe sind nur für Personen sichtbar, die im CMS angemeldet sind.', true);
+
+      function gh(pfad, roh) {
+        return fetch(GH + pfad, {
+          cache: 'no-store',
+          headers: { Authorization: 'token ' + token, Accept: roh ? 'application/vnd.github.raw' : 'application/vnd.github+json' },
+        }).then(function (r) {
+          if (!r.ok) {
+            var f = new Error('GitHub ' + r.status);
+            f.status = r.status;
+            throw f;
+          }
+          return roh ? r.text() : r.json();
+        });
+      }
+
+      /** Bilder, die nur Entwürfe verwenden, liegen privat in der Ablage (_astro/…): mit Anmeldung laden */
+      function bilderEinsetzen(repo, sha, html) {
+        var namen = {};
+        (html.match(/\/_astro\/[^"'\s),?#]+\.(?:webp|avif|jpe?g|png|gif|svg)/gi) || []).forEach(function (n) {
+          namen[n] = true;
+        });
+        var liste = Object.keys(namen);
+        if (!liste.length) return html;
+        return gh('/repos/' + repo + '/git/trees/' + sha + '?recursive=1').then(function (baum) {
+          var blobs = {};
+          (baum.tree || []).forEach(function (e) {
+            if (e.type === 'blob') blobs['/' + e.path] = e.sha;
+          });
+          var offen = liste.filter(function (n) {
+            return blobs[n];
+          });
+          var ersatz = {};
+          var i = 0;
+          function weiter() {
+            if (i >= offen.length) return Promise.resolve();
+            var n = offen[i++];
+            return fetch(GH + '/repos/' + repo + '/git/blobs/' + blobs[n], {
+              headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github.raw' },
+            })
+              .then(function (r) {
+                return r.ok ? r.blob() : null;
+              })
+              .then(function (b) {
+                if (b) {
+                  var endung = n.split('.').pop().toLowerCase();
+                  var typ = { webp: 'image/webp', avif: 'image/avif', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', svg: 'image/svg+xml' }[endung];
+                  ersatz[n] = URL.createObjectURL(typ ? new Blob([b], { type: typ }) : b);
+                }
+              }, function () {})
+              .then(weiter);
+          }
+          // 6 Bilder gleichzeitig laden
+          return Promise.all([weiter(), weiter(), weiter(), weiter(), weiter(), weiter()]).then(function () {
+            Object.keys(ersatz).forEach(function (n) {
+              html = html.split(n).join(ersatz[n]);
+            });
+            return html;
+          });
+        });
+      }
+
+      fetch('/admin/config.yml', { cache: 'no-store' })
+        .then(function (r) {
+          return r.text();
+        })
+        .then(function (t) {
+          var repo = ((t.match(/^\s+repo:\s*(.+)$/m) || [])[1] || '').replace(/\s+#.*$/, '').trim().replace(/^['"]|['"]$/g, '');
+          if (!repo) throw new Error('In config.yml steht kein Repo.');
+          return gh('/repos/' + repo + '/git/ref/' + REF)
+            .catch(function (f) {
+              if (f.status !== 404) throw f;
+              // Zweiter Weg zur Ablage (refs/vorschau/entwuerfe)
+              return gh('/repos/' + repo + '/git/matching-refs/' + REF).then(function (liste) {
+                if (liste && liste[0]) return liste[0];
+                throw f;
+              });
+            })
+            .then(
+            function (ref) {
+              var sha = ref.object.sha;
+              return gh('/repos/' + repo + '/contents/' + datei.split('/').map(encodeURIComponent).join('/') + '?ref=' + sha, true).then(function (html) {
+                return bilderEinsetzen(repo, sha, html);
+              });
+            },
+            function (f) {
+              if (f.status === 401) throw f;
+              if (f.status === 404) {
+                // Kein Zugriff aufs Repo oder noch nie Entwürfe abgelegt
+                return gh('/repos/' + repo).then(function () {
+                  var e = new Error('leer');
+                  e.status = 404;
+                  throw e;
+                });
+              }
+              throw f;
+            },
+          );
+        })
+        .then(function (html) {
+          // Links mit # auf derselben Seite bleiben in der Vorschau
+          var helfer =
+            '<script>document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[href^=\'#\']");' +
+            'if(!a)return;var z=document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)));' +
+            'e.preventDefault();if(z)z.scrollIntoView({behavior:"smooth"});else window.scrollTo({top:0,behavior:"smooth"});},true);<\/script>';
+          html = html.replace(/<head([^>]*)>/i, '<head$1><base href="/' + adresse.replace(/"/g, '') + '">');
+          html = html.replace(/<\/body>/i, helfer + '</body>');
+          document.open();
+          document.write(html);
+          document.close();
+        })
+        .catch(function (f) {
+          if (f.status === 401) return zeigen('Bitte erneut anmelden', 'Die Anmeldung ist abgelaufen.', true);
+          if (f.status === 404)
+            return zeigen('Keine Vorschau gefunden', [
+              'Für diese Adresse gibt es (noch) keinen Entwurf.',
+              'Nach dem Speichern dauert es 1–3 Minuten, bis die Vorschau fertig ist. Ist die Seite inzwischen veröffentlicht, steht sie auf der Website. Ohne Zugriff auf das Repo ist keine Vorschau sichtbar.',
+            ]);
+          zeigen('Vorschau konnte nicht geladen werden', f.message || String(f));
+        });
+    })();
+  </script>
+</body>
+</html>

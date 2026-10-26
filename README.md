@@ -46,8 +46,10 @@ Ein- und ausschalten in **`src/projekt.config.ts`** (`aktiv: true`), dort auch A
 - `src/integrations/bilder-aufraeumen.mjs` – entfernt nach dem Build ungenutzte Originalbilder (hält die Website unter dem Speicherlimit von Deploy Now)
 - `public/admin/mediathek.js` – Mediathek im CMS: alle Bilder an einem Ort (Menü „Medien“ und jedes Bildfeld), Hochladen, Beschreibungen, Löschen nur nicht verwendeter Bilder
 - `public/admin/cms-anpassungen.js` – CMS-Oberfläche: Knopf „Speichern“, Etiketten Veröffentlicht/Entwurf in den Übersichten, Feld „Tag-Liste“ (Umbenennen/Löschen wird in alle Einträge übernommen)
-- `public/admin/entwuerfe.js` – Entwürfe im CMS: „Vorschaulink kopieren“ für Entwürfe, „Als Entwurf kopieren“, Rückfrage, bevor eine veröffentlichte Seite offline geht
-- `src/integrations/entwuerfe.mjs` – legt Entwürfe (Schalter „Veröffentlicht“ aus) nach dem Build unter der geheimen Vorschau-Adresse `/vorschau/<schlüssel>/…` ab (noindex, nicht in Sitemap/IndexNow/llms.txt). Schlüssel pro Kunde in `src/data/vorschau.json` – fehlt die Datei, werden Entwürfe gar nicht veröffentlicht
+- `public/admin/entwuerfe.js` – Entwürfe im CMS: Leiste unten links mit Schalter „Veröffentlicht“ und Vorschaulink, „Als Entwurf kopieren“ in der Übersicht, Rückfrage, bevor eine veröffentlichte Seite offline geht
+- `public/admin/entwurf.html` – Vorschau von Entwürfen, nur für Personen, die im CMS angemeldet sind
+- `src/integrations/entwuerfe.mjs` – entfernt Entwürfe (Schalter „Veröffentlicht“ aus) beim Build von der Website; mit ENTWURF_ABLAGE legt es sie für die Vorschau ab
+- `.github/workflows/entwuerfe.yaml` – baut die Entwürfe nach jeder Änderung und legt sie privat im Repo ab (refs/vorschau/entwuerfe, kein Zweig)
 - `public/admin/galerie-widget.js` – CMS-Feld „Galerie“: mehrere Fotos auf einmal hochladen oder aus der Mediathek wählen, per Ziehen sortieren
 - `public/admin/vorschau.js` – nur noch für ältere Projekte ohne Mediathek (in neuen Projekten nicht einbinden)
 - `src/components/Kontaktformular.astro`, `src/components/Rechtstext.astro`, `src/layouts/BaseLayout.astro`
