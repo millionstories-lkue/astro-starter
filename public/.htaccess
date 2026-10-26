@@ -1,0 +1,23 @@
+# Wie lange Browser Dateien zwischenspeichern dürfen (schnellere Wiederholungsbesuche)
+# Teil des Starter-Repos – nicht verändern.
+#
+# - /_astro/…  Bilder, Schriften, Skripte: Der Dateiname enthält einen Versionsstempel und ändert
+#              sich bei jeder Änderung. Deshalb dürfen Browser sie 1 Jahr behalten.
+# - Seiten (HTML), CMS (/admin/) und alles ohne Versionsstempel: Der Browser fragt jedes Mal
+#   kurz nach, ob es eine neue Fassung gibt. Änderungen sind damit sofort sichtbar.
+#
+# Wird diese Datei vom Server nicht unterstützt, passiert nichts (alles in IfModule).
+
+<IfModule mod_headers.c>
+  # Standard: immer nachfragen
+  Header set Cache-Control "no-cache"
+
+  <If "%{REQUEST_URI} =~ m#^/_astro/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+
+  # Feste Dateien ohne Versionsstempel (Favicon, Vorschaubild): 1 Woche
+  <If "%{REQUEST_URI} =~ m#\.(ico|png|jpe?g|webp|avif|svg)$# && %{REQUEST_URI} !~ m#^/(_astro|admin)/#">
+    Header set Cache-Control "public, max-age=604800"
+  </If>
+</IfModule>
