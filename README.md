@@ -52,12 +52,21 @@ Der Starter ist barrierefrei aufgebaut, die Gestaltung bleibt trotzdem frei:
 - **Erklärung zur Barrierefreiheit:** Seite `/barrierefreiheit`, Text in `src/data/rechtstexte/barrierefreiheit.md`, Link im Footer.
 - Regeln für Kontraste, Klickflächen und Aufbau: Tech-Context Punkt 11.
 
+## Ladezeit (PageSpeed) – Standard für jede Seite
+
+- Schriften nur als woff2 in `src/assets/fonts/`, die 1–2 wichtigsten in `src/projekt.config.ts` unter `schriftenVorladen` eintragen (werden automatisch vorab geladen).
+- Bilder immer mit `widths` und `sizes`, die zur angezeigten Größe passen (Stufen bis doppelte Anzeigebreite für Retina).
+  Das erste große Bild oben: `loading="eager"` und `fetchpriority="high"`, alle anderen bleiben „lazy“.
+- Animationen nur über `transform` und `opacity` (nie Breite, Höhe, Abstände oder Position animieren).
+- Änderungen am Starter in `CHANGELOG.md` eintragen und die Version in `package.json` erhöhen.
+
 ## Nicht verändern
 
 - `src/lib/bewegung.ts`, `src/lib/formular-pruefung.ts`, `src/lib/menue.ts` – Barrierefreiheit (Bewegung, Fehlermeldungen, Menü)
 - `src/pages/barrierefreiheit.astro` – Seite für die Erklärung zur Barrierefreiheit (Text aus `src/data/rechtstexte/`)
 
 - `src/lib/formhub-client.js` – Verbindung zum Formular-Hub
+- `public/.htaccess` – wie lange Browser Dateien zwischenspeichern (Ladezeit)
 - `src/lib/cms-bild.ts` – Bilder aus dem CMS für die Bildoptimierung (auch Unterordner) und zentrale Bildbeschreibungen (`cmsAlt`)
 - `src/integrations/bilder-aufraeumen.mjs` – entfernt nach dem Build ungenutzte Originalbilder (hält die Website unter dem Speicherlimit von Deploy Now)
 - `public/admin/mediathek.js` – Mediathek im CMS: alle Bilder an einem Ort (Menü „Medien“ und jedes Bildfeld), Hochladen, Beschreibungen, Löschen nur nicht verwendeter Bilder

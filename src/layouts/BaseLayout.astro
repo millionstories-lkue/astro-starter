@@ -1,5 +1,12 @@
 ---
 import '../styles/global.css';
+import { projekt } from '@/projekt.config';
+
+// Schriften vorab laden (schnellerer Seitenaufbau): welche, steht in src/projekt.config.ts (schriftenVorladen)
+const schriftDateien = import.meta.glob<string>('/src/assets/fonts/*.woff2', { eager: true, query: '?url', import: 'default' });
+const schriftenVorladen = ((projekt as { schriftenVorladen?: readonly string[] }).schriftenVorladen ?? [])
+  .map((name) => schriftDateien[`/src/assets/fonts/${name}`])
+  .filter(Boolean);
 
 interface Props {
   title: string;
@@ -23,6 +30,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {schriftenVorladen.map((href) => <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />)}
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <!-- Merker „JavaScript läuft“ – Einblende-Effekte verstecken Inhalte nur dann (sonst bleibt alles sichtbar) -->
   <script is:inline>document.documentElement.classList.add('js');</script>

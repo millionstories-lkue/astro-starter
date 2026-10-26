@@ -14,6 +14,13 @@ export const projekt = {
   /** Firmen- bzw. Markenname (Seitentitel, Schema.org, llms.txt) */
   firmenname: 'Kundenname',
 
+  /**
+   * Schriften vorab laden (schnellerer Seitenaufbau): Dateinamen aus src/assets/fonts/,
+   * höchstens 2 – meist Fließtext und Überschrift, z. B. ['inter-latin-400.woff2', 'inter-latin-700.woff2'].
+   * Leer lassen, solange die Systemschrift genutzt wird.
+   */
+  schriftenVorladen: [] as string[],
+
   bausteine: {
     portfolio: { aktiv: false, pfad: 'portfolio', name: 'Portfolio', einzahl: 'Projekt', tagFilter: false },
     blog: { aktiv: false, pfad: 'blog', name: 'Blog', einzahl: 'Beitrag', tagFilter: false },

@@ -15,8 +15,9 @@ export default {
           light: '#dbeafe',
         },
       },
-      // Lokale Schriften: Dateien in public/fonts/ ablegen, @font-face in
-      // src/styles/global.css definieren und hier den Namen voranstellen.
+      // Lokale Schriften: woff2-Dateien in src/assets/fonts/ ablegen (NICHT public/ – dort gibt es
+      // keinen Versionsstempel), @font-face in src/styles/global.css definieren, die 1–2 wichtigsten
+      // Schnitte in src/projekt.config.ts unter schriftenVorladen eintragen und hier den Namen voranstellen.
       fontFamily: {
         sans: ['ui-sans-serif', 'system-ui', 'sans-serif'],
       },

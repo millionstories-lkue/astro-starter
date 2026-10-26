@@ -10,6 +10,8 @@ export default defineConfig({
   // TODO pro Kunde: endgültige Domain eintragen (für Canonical-URLs, Open Graph und Sitemap)
   site: 'https://www.kundendomain.de',
   output: 'static',
+  // CSS direkt in die Seite schreiben: Der Browser muss nicht erst auf eine CSS-Datei warten (PageSpeed)
+  build: { inlineStylesheets: 'always' },
   // Zwischenspeicher für optimierte Bilder (beim Veröffentlichen wiederverwendet)
   cacheDir: './.astro-cache',
   // entwuerfe() nimmt Entwürfe aus der Website, Vorschau nur im CMS (muss vor sitemap() stehen),

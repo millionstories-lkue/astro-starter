@@ -3,6 +3,16 @@
  * Tailwind wird über die Integration @astrojs/tailwind automatisch eingebunden.
  * Hier nur projektweite Ergänzungen und lokale Schriften (@font-face).
  *
+ * Lokale Schriften (nur woff2, Dateien in src/assets/fonts/ – bekommen beim Bauen einen
+ * Versionsstempel und dürfen dann 1 Jahr im Browser bleiben). Immer relativer Pfad und swap:
+ *   @font-face {
+ *     font-family: 'Kundenschrift';
+ *     font-style: normal;
+ *     font-weight: 400;
+ *     font-display: swap;
+ *     src: url('../assets/fonts/kundenschrift-400.woff2') format('woff2');
+ *   }
+ *
  * Barrierefreiheit (WCAG 2.2 AA) ist hier schon eingebaut – beim Anpassen bitte behalten:
  * Fokusrahmen, Fehlermeldungen in Formularen, Einblende-Effekte und „Bewegung reduzieren“.
  */
