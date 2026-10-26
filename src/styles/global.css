@@ -2,13 +2,62 @@
  * Globale Styles
  * Tailwind wird über die Integration @astrojs/tailwind automatisch eingebunden.
  * Hier nur projektweite Ergänzungen und lokale Schriften (@font-face).
+ *
+ * Barrierefreiheit (WCAG 2.2 AA) ist hier schon eingebaut – beim Anpassen bitte behalten:
+ * Fokusrahmen, Fehlermeldungen in Formularen, Einblende-Effekte und „Bewegung reduzieren“.
  */
 
-/* Sichtbarer Fokus für Tastaturnutzer */
-:focus-visible {
-  outline: 3px solid theme('colors.brand.DEFAULT');
-  outline-offset: 2px;
+/* ---------- Fokus: gut sichtbarer Rahmen für Tastaturnutzer (WCAG 2.4.7, 1.4.11) ----------
+ * Farbe über die Variable --fokus. Auf dunklen oder farbigen Flächen die Klasse „auf-dunkel“
+ * an den Bereich setzen (Rahmen wird weiß) oder --fokus selbst setzen, z. B. style="--fokus:#efd994".
+ * Der Rahmen muss zum Hintergrund mindestens 3:1 Kontrast haben. Nie outline: none ohne Ersatz.
+ */
+:root {
+  --fokus: theme('colors.brand.DEFAULT');
 }
+.auf-dunkel {
+  --fokus: #fff;
+}
+:focus-visible {
+  outline: 3px solid var(--fokus);
+  outline-offset: 3px;
+}
+/* Ziel des Sprunglinks „Zum Inhalt springen“ – bekommt Fokus, braucht aber keinen Rahmen */
+main:focus {
+  outline: none;
+}
+.skip-link:focus-visible {
+  outline-color: theme('colors.slate.900');
+}
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* Feste (sticky) Kopfbereiche verdecken angesprungene Abschnitte und Fokus nicht (WCAG 2.4.11).
+ * Bei festem Header die Höhe setzen, z. B. html { --kopf-hoehe: 80px; } */
+html {
+  scroll-padding-top: var(--kopf-hoehe, 0px);
+}
+
+/* Lange deutsche Wörter (z. B. „Datenschutzerklärung“) passen auch auf 320 px breite Bildschirme (WCAG 1.4.10) */
+h1,
+h2,
+h3,
+h4,
+.inhalt {
+  overflow-wrap: break-word;
+}
+@media (max-width: 480px) {
+  h1,
+  h2,
+  h3 {
+    hyphens: auto;
+  }
+}
+
+/* ---------- Formulare ---------- */
 
 /* Statusmeldungen des Formular-Hubs (gesetzt von src/lib/formhub-client.js) */
 [data-formhub-status]:empty {
@@ -29,15 +78,83 @@
   padding: 0.75rem 1rem;
 }
 
-/* Weniger Bewegung, wenn im Betriebssystem so eingestellt */
+/* Fehlermeldung direkt am Feld (gesetzt von src/lib/formular-pruefung.ts) */
+.feld-fehler {
+  margin-top: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: theme('colors.red.700');
+}
+.feld-fehler:empty {
+  display: none;
+}
+.feld-fehler::before {
+  content: '⚠ ';
+}
+.auf-dunkel .feld-fehler {
+  color: #fff;
+}
+[aria-invalid='true'] {
+  border-color: theme('colors.red.700') !important;
+  box-shadow: 0 0 0 1px theme('colors.red.700');
+}
+
+/* ---------- Bewegung (Hilfen aus src/lib/bewegung.ts) ---------- */
+
+/* Weich einblenden beim Scrollen: class="einblenden" (nur mit JavaScript ausgeblendet) */
+.einblenden {
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+.js .einblenden:not(.bewegt) {
+  opacity: 0;
+  transform: translateY(1.25rem);
+}
+
+/* Überschrift Wort für Wort: data-woerter (Zeitversatz pro Wort über --i) */
+[data-woerter] .wort {
+  display: inline-block;
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+.js [data-woerter]:not(.bewegt) .wort {
+  opacity: 0;
+  transform: translateY(0.45em);
+}
+
+/* Zahlen beim Hochzählen nicht springen lassen */
+[data-zahl] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Parallax: ruhiger mit GPU */
+[data-parallax] {
+  will-change: transform;
+}
+
+/* „Bewegung reduzieren“ im Betriebssystem (WCAG 2.3.3): alles sofort am Ziel, nichts schwebt */
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
+  html,
+  html.scroll-smooth {
+    scroll-behavior: auto !important;
   }
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+  .js .einblenden:not(.bewegt),
+  .js [data-woerter]:not(.bewegt) .wort {
+    opacity: 1;
+    transform: none;
+  }
+  [data-parallax] {
+    transform: none !important;
   }
 }

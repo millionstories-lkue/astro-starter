@@ -81,6 +81,8 @@
   border: 0;
   background: rgb(0 0 0 / 0.92);
   color: #fff;
+  /* weißer Fokusrahmen auf dunklem Grund */
+  --fokus: #fff;
 }
 .foto-dialog::backdrop {
   background: rgb(0 0 0 / 0.92);

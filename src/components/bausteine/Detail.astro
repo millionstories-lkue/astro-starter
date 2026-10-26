@@ -42,11 +42,11 @@ if (e.baustein === 'events' && t) {
 ---
 
 <article class="mx-auto max-w-4xl px-6 py-12 sm:py-16">
-  <nav aria-label="Brotkrumen" class="text-sm text-slate-500">
+  <nav aria-label="Brotkrumen" class="text-sm text-slate-600">
     <ol class="flex flex-wrap gap-2">
-      <li><a href="/" class="hover:text-brand">Startseite</a> <span aria-hidden="true">/</span></li>
-      <li><a href={b.url} class="hover:text-brand">{b.name}</a> <span aria-hidden="true">/</span></li>
-      <li aria-current="page">{e.titel}</li>
+      <li><a href="/" class="inline-block py-1 hover:text-brand">Startseite</a> <span aria-hidden="true">/</span></li>
+      <li><a href={b.url} class="inline-block py-1 hover:text-brand">{b.name}</a> <span aria-hidden="true">/</span></li>
+      <li class="py-1" aria-current="page">{e.titel}</li>
     </ol>
   </nav>
 
@@ -88,6 +88,7 @@ if (e.baustein === 'events' && t) {
                 {a.link ? (
                   <a href={a.link} class="text-brand underline underline-offset-2 hover:text-brand-dark" rel="noopener" target="_blank">
                     {a.wert}
+                    <span class="sr-only"> (öffnet in neuem Tab)</span>
                   </a>
                 ) : (
                   a.wert
@@ -103,6 +104,7 @@ if (e.baustein === 'events' && t) {
       t && d.anmeldeLink && !t.vergangen && !t.abgesagt && (
         <a href={d.anmeldeLink} rel="noopener" target="_blank" class="mt-6 inline-flex rounded-lg bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark">
           Zur Anmeldung
+          <span class="sr-only"> (öffnet in neuem Tab)</span>
         </a>
       )
     }
@@ -145,7 +147,7 @@ if (e.baustein === 'events' && t) {
     {
       vorher ? (
         <a href={vorher.url} class="group rounded-lg p-3 hover:bg-slate-50">
-          <span class="block text-sm text-slate-500">← Zurück</span>
+          <span class="block text-sm text-slate-600"><span aria-hidden="true">← </span>Zurück</span>
           <span class="font-semibold text-slate-900 group-hover:text-brand">{vorher.titel}</span>
         </a>
       ) : (
@@ -155,7 +157,7 @@ if (e.baustein === 'events' && t) {
     {
       nachher && (
         <a href={nachher.url} class="group rounded-lg p-3 text-right hover:bg-slate-50">
-          <span class="block text-sm text-slate-500">Weiter →</span>
+          <span class="block text-sm text-slate-600">Weiter<span aria-hidden="true"> →</span></span>
           <span class="font-semibold text-slate-900 group-hover:text-brand">{nachher.titel}</span>
         </a>
       )

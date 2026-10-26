@@ -26,10 +26,10 @@ const vergangen = eintraege.filter((e) => e.termin?.vergangen);
 ---
 
 <div class="mx-auto max-w-6xl px-6 py-12 sm:py-16" data-baustein-uebersicht>
-  <nav aria-label="Brotkrumen" class="text-sm text-slate-500">
+  <nav aria-label="Brotkrumen" class="text-sm text-slate-600">
     <ol class="flex flex-wrap gap-2">
-      <li><a href="/" class="hover:text-brand">Startseite</a> <span aria-hidden="true">/</span></li>
-      <li aria-current="page">{b.name}</li>
+      <li><a href="/" class="inline-block py-1 hover:text-brand">Startseite</a> <span aria-hidden="true">/</span></li>
+      <li class="py-1" aria-current="page">{b.name}</li>
     </ol>
   </nav>
 
@@ -89,7 +89,7 @@ const vergangen = eintraege.filter((e) => e.termin?.vergangen);
           <h2 id="vergangene-termine" class="text-xl font-semibold text-slate-900">
             Vergangene {b.name}
           </h2>
-          <div class="mt-5 grid gap-4 opacity-80" data-liste>
+          <div class="mt-5 grid gap-4" data-liste>
             {vergangen.map((e) => (
               <TerminKarte eintrag={e} stufe="h3" />
             ))}

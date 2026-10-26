@@ -24,6 +24,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <!-- Merker „JavaScript läuft“ – Einblende-Effekte verstecken Inhalte nur dann (sonst bleibt alles sichtbar) -->
+  <script is:inline>document.documentElement.classList.add('js');</script>
 
   <!-- Primary Meta Tags -->
   <title>{title}</title>
@@ -60,13 +62,21 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
 </head>
 <body class="bg-white text-slate-900 antialiased min-h-screen flex flex-col">
   <!-- Barrierefreiheit: Tastaturnutzer können die Navigation überspringen -->
-  <a href="#inhalt" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow-lg">
+  <a href="#inhalt" class="skip-link sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:font-semibold focus:text-slate-900 focus:shadow-lg">
     Zum Inhalt springen
   </a>
   <slot name="header" />
-  <main id="inhalt" class="flex-grow">
+  <!-- tabindex="-1": Der Sprunglink setzt den Fokus wirklich in den Inhalt (auch in Safari) -->
+  <main id="inhalt" tabindex="-1" class="flex-grow">
     <slot />
   </main>
   <slot name="footer" />
+
+  <!-- Barrierefreie Bewegung: Daueranimationen enden nach max. 5 s sanft, „Bewegung reduzieren“ wird beachtet,
+       Hilfen data-bewegung, .einblenden, data-woerter, data-zahl, data-parallax (siehe src/lib/bewegung.ts) -->
+  <script>
+    import { bewegungStarten } from '@/lib/bewegung';
+    bewegungStarten();
+  </script>
 </body>
 </html>

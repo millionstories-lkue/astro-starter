@@ -1,6 +1,6 @@
 ---
 /**
- * Seite für Impressum und Datenschutz. Der Text kommt aus src/data/rechtstexte/<name>.md
+ * Seite für Impressum, Datenschutz und Erklärung zur Barrierefreiheit. Der Text kommt aus src/data/rechtstexte/<name>.md
  * (im CMS unter „Rechtstexte“ pflegbar). Teil des Starter-Repos – nicht verändern.
  */
 import '@/styles/bausteine.css';
@@ -12,7 +12,7 @@ import { projekt } from '@/projekt.config';
 import { datumDE } from '@/lib/bausteine';
 
 interface Props {
-  name: 'impressum' | 'datenschutz';
+  name: 'impressum' | 'datenschutz' | 'barrierefreiheit';
   standardTitel: string;
 }
 

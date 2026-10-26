@@ -2,7 +2,8 @@
 /**
  * PLATZHALTER-Fußbereich – wird pro Kunde durch den eigenen Footer im Kundendesign ersetzt.
  * Wird von den Starter-Seiten eingebunden, deshalb muss es diese Datei immer geben.
- * Der Footer enthält immer Links zu /impressum und /datenschutz.
+ * Der Footer enthält immer Links zu /impressum, /datenschutz und /barrierefreiheit.
+ * Klickflächen mindestens 24 × 24 px (Links mit inline-block py-1), Kontrast mind. 4.5:1.
  */
 import { projekt } from '@/projekt.config';
 const jahr = new Date().getFullYear();
@@ -12,9 +13,10 @@ const jahr = new Date().getFullYear();
   <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-slate-600">
     <p>© {jahr} {projekt.firmenname}</p>
     <nav aria-label="Rechtliches">
-      <ul class="flex gap-6">
-        <li><a href="/impressum" class="hover:text-brand">Impressum</a></li>
-        <li><a href="/datenschutz" class="hover:text-brand">Datenschutz</a></li>
+      <ul class="flex flex-wrap gap-x-6 gap-y-1">
+        <li><a href="/impressum/" class="inline-block py-1 hover:text-brand">Impressum</a></li>
+        <li><a href="/datenschutz/" class="inline-block py-1 hover:text-brand">Datenschutz</a></li>
+        <li><a href="/barrierefreiheit/" class="inline-block py-1 hover:text-brand">Barrierefreiheit</a></li>
       </ul>
     </nav>
   </div>

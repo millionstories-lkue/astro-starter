@@ -31,7 +31,7 @@ Ein- und ausschalten in **`src/projekt.config.ts`** (`aktiv: true`), dort auch A
 
 ## Immer pflegbar
 
-- Impressum und Datenschutz: `src/data/rechtstexte/impressum.md` und `datenschutz.md`
+- Impressum, Datenschutz und Barrierefreiheit: `src/data/rechtstexte/impressum.md`, `datenschutz.md` und `barrierefreiheit.md`
 - Firmenname für Seitentitel: `src/projekt.config.ts`
 - Kopf- und Fußbereich: `src/components/Header.astro` und `Footer.astro` (Platzhalter, pro Kunde ersetzen)
 - Häufige Fragen: `src/components/Faq.astro` – die Fragen gehören zur jeweiligen Seite (Feld `faq` in `src/data/seiten/<seite>.json`),
@@ -39,7 +39,23 @@ Ein- und ausschalten in **`src/projekt.config.ts`** (`aktiv: true`), dort auch A
 
 Änderungen später: neue ZIP von Claude im Kunden-Repo hochladen, Deploy Now veröffentlicht automatisch.
 
+## Barrierefreiheit (WCAG 2.2 AA) – Standard für jede Seite
+
+Der Starter ist barrierefrei aufgebaut, die Gestaltung bleibt trotzdem frei:
+
+- **Bewegung:** Animationen, die sich wiederholen, hören nach höchstens 5 Sekunden sanft auf (am Ende eines Durchgangs).
+  „Bewegung reduzieren“ im Betriebssystem stoppt alle Effekte. Hilfen für Einblenden, Wort-für-Wort-Überschriften,
+  hochzählende Zahlen und Parallax: `src/lib/bewegung.ts` (startet automatisch über das BaseLayout).
+- **Fokus:** gut sichtbarer Rahmen in der CI-Farbe, auf dunklen Flächen mit `class="auf-dunkel"` weiß.
+- **Formulare:** Fehlermeldungen direkt am Feld (`src/lib/formular-pruefung.ts`, im Kontaktformular eingebaut).
+- **Menü:** barrierefreies mobiles Menü mit `src/lib/menue.ts` (Muster in der Datei).
+- **Erklärung zur Barrierefreiheit:** Seite `/barrierefreiheit`, Text in `src/data/rechtstexte/barrierefreiheit.md`, Link im Footer.
+- Regeln für Kontraste, Klickflächen und Aufbau: Tech-Context Punkt 11.
+
 ## Nicht verändern
+
+- `src/lib/bewegung.ts`, `src/lib/formular-pruefung.ts`, `src/lib/menue.ts` – Barrierefreiheit (Bewegung, Fehlermeldungen, Menü)
+- `src/pages/barrierefreiheit.astro` – Seite für die Erklärung zur Barrierefreiheit (Text aus `src/data/rechtstexte/`)
 
 - `src/lib/formhub-client.js` – Verbindung zum Formular-Hub
 - `src/lib/cms-bild.ts` – Bilder aus dem CMS für die Bildoptimierung (auch Unterordner) und zentrale Bildbeschreibungen (`cmsAlt`)

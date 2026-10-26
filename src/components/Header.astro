@@ -11,6 +11,13 @@
  * Seiten mit Schalter „Veröffentlicht“ (z. B. Landingpages) nur verlinken, wenn sie veröffentlicht sind:
  *   import { seiteVeroeffentlicht } from '@/lib/bausteine';
  *   ...(seiteVeroeffentlicht('aktion') ? [{ name: 'Aktion', url: '/aktion/' }] : [])
+ *
+ * Barrierefreiheit (Pflicht für jeden Kunden-Header, Tech-Context Punkt 11):
+ * - <header> mit <nav aria-label="Hauptnavigation">, aktuelle Seite mit aria-current="page"
+ * - Klickflächen mindestens 24 × 24 px (z. B. Links mit inline-block py-2)
+ * - Mobiles Menü mit src/lib/menue.ts (Knopf mit aria-expanded, Esc, Fokus) – Muster dort
+ * - Header über einem Foto oder farbig: class="auf-dunkel" (weißer Fokusrahmen), Kontrast prüfen
+ * - Fester (sticky) Header: in global.css html { --kopf-hoehe: <Höhe>px; } setzen
  */
 import { projekt } from '@/projekt.config';
 import { aktiveBausteine } from '@/lib/bausteine';
@@ -21,7 +28,7 @@ const links = [{ name: 'Start', url: '/' }, ...aktiveBausteine().map((b) => ({ n
 
 <header class="border-b border-slate-200">
   <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5">
-    <a href="/" class="text-lg font-bold text-slate-900">{projekt.firmenname}</a>
+    <a href="/" class="inline-block py-2 text-lg font-bold text-slate-900">{projekt.firmenname}</a>
     <nav aria-label="Hauptnavigation">
       <ul class="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
         {
@@ -31,7 +38,7 @@ const links = [{ name: 'Start', url: '/' }, ...aktiveBausteine().map((b) => ({ n
               <li>
                 <a
                   href={l.url}
-                  class:list={['hover:text-brand', istAktuell && 'text-brand underline underline-offset-4']}
+                  class:list={['inline-block py-2 hover:text-brand', istAktuell && 'text-brand underline underline-offset-4']}
                   aria-current={istAktuell ? 'page' : undefined}
                 >
                   {l.name}

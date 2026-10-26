@@ -2,7 +2,8 @@
 /**
  * Fotoraster mit Großansicht (Lightbox) – für die Fotos eines Projekts, Beitrags oder Termins.
  * Bedienbar mit Maus, Touch (Wischen) und Tastatur (Pfeiltasten, Esc).
- * Aussehen pro Kunde anpassbar.
+ * Aussehen pro Kunde anpassbar. Barrierefrei: Fokus kehrt nach dem Schließen zurück,
+ * Zähler wird angesagt, im dunklen Dialog ist der Fokusrahmen weiß (bausteine.css).
  */
 import { Image, getImage } from 'astro:assets';
 import type { Foto } from '@/lib/bausteine';
@@ -28,7 +29,7 @@ const id = `fotos-${Math.random().toString(36).slice(2, 8)}`;
           <li>
             <button
               type="button"
-              class="block w-full overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              class="block w-full overflow-hidden rounded-lg"
               data-foto={i}
               data-gross={gross[i].src}
               data-alt={f.alt}

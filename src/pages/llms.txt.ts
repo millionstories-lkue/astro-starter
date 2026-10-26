@@ -20,6 +20,7 @@ const SEITEN: [string, string, string][] = [
   ['Startseite', '/', '[Ein Satz zum Inhalt der Startseite]'],
   ['Impressum', '/impressum', 'Anbieterkennzeichnung und Kontaktangaben.'],
   ['Datenschutz', '/datenschutz', 'Datenschutzerklärung (keine Cookies, kein Tracking).'],
+  ['Barrierefreiheit', '/barrierefreiheit', 'Erklärung zur Barrierefreiheit (Ziel: WCAG 2.2 AA) und Kontakt für Hinweise.'],
 ];
 
 const KONTAKT = `## Kontakt

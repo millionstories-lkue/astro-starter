@@ -10,6 +10,10 @@
  * kundeId und formType müssen exakt mit dem Eintrag in der index.php
  * des Hubs übereinstimmen. Für weitere Formulartypen (z. B. Bewerbung)
  * diese Komponente kopieren und Felder anpassen.
+ *
+ * Barrierefrei (WCAG 2.2 AA): sichtbare Beschriftungen, Feldrahmen mit 3:1 Kontrast,
+ * Fehlermeldungen direkt am Feld (src/lib/formular-pruefung.ts), Statusmeldung per aria-live.
+ * Auf dunklem Hintergrund: Formular in einen Bereich mit class="auf-dunkel" setzen.
  */
 interface Props {
   kundeId: string;
@@ -29,8 +33,8 @@ const {
 const id = `formular-${formType}`;
 
 const feldKlassen =
-  'mt-1 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 ' +
-  'placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30';
+  'mt-1 block w-full rounded-lg border border-slate-500 bg-white px-4 py-3 text-base text-slate-900 ' +
+  'placeholder:text-slate-500 focus:border-brand';
 ---
 
 <form
@@ -47,14 +51,14 @@ const feldKlassen =
     <label for={`${id}-name`} class="block text-sm font-medium text-slate-800">
       Name <span aria-hidden="true">*</span>
     </label>
-    <input id={`${id}-name`} name="name" type="text" autocomplete="name" required class={feldKlassen} />
+    <input id={`${id}-name`} name="name" type="text" autocomplete="name" required data-fehler="Bitte geben Sie Ihren Namen ein." class={feldKlassen} />
   </div>
 
   <div>
     <label for={`${id}-email`} class="block text-sm font-medium text-slate-800">
       E-Mail-Adresse <span aria-hidden="true">*</span>
     </label>
-    <input id={`${id}-email`} name="email" type="email" autocomplete="email" required class={feldKlassen} />
+    <input id={`${id}-email`} name="email" type="email" autocomplete="email" required data-fehler="Bitte geben Sie eine gültige E-Mail-Adresse ein, z. B. name@beispiel.de." class={feldKlassen} />
   </div>
 
   <div>
@@ -68,7 +72,7 @@ const feldKlassen =
     <label for={`${id}-nachricht`} class="block text-sm font-medium text-slate-800">
       Ihre Nachricht <span aria-hidden="true">*</span>
     </label>
-    <textarea id={`${id}-nachricht`} name="nachricht" rows="6" required class={feldKlassen}></textarea>
+    <textarea id={`${id}-nachricht`} name="nachricht" rows="6" required data-fehler="Bitte schreiben Sie uns Ihre Nachricht." class={feldKlassen}></textarea>
   </div>
 
   <div class="flex items-start gap-3">
@@ -78,7 +82,8 @@ const feldKlassen =
       type="checkbox"
       value="Zugestimmt"
       required
-      class="mt-1 h-5 w-5 rounded border-slate-300 text-brand focus:ring-brand"
+      data-fehler="Bitte stimmen Sie der Verarbeitung Ihrer Angaben zu."
+      class="mt-0.5 h-6 w-6 shrink-0 rounded border-slate-500 accent-brand"
     />
     <label for={`${id}-datenschutz`} class="text-sm text-slate-700">
       Ich habe die <a href={datenschutzUrl} class="font-medium text-brand underline underline-offset-2 hover:text-brand-dark">Datenschutzerklärung</a>
@@ -104,11 +109,14 @@ const feldKlassen =
 
 <script>
   import { verbindeFormular } from '@/lib/formhub-client.js';
+  import { formularPruefen } from '@/lib/formular-pruefung';
 
   // Verbindet alle Hub-Formulare der Seite (auch mehrere) genau einmal
   document.querySelectorAll<HTMLFormElement>('form[data-formhub]').forEach((form) => {
     if (form.dataset.formhubVerbunden) return;
     form.dataset.formhubVerbunden = 'true';
+    // Zuerst: Fehler am Feld anzeigen und den Versand anhalten, bis alles stimmt
+    formularPruefen(form);
     verbindeFormular(form, {
       kundeId: form.dataset.kundeId,
       formType: form.dataset.formType,

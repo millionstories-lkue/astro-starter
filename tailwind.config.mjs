@@ -4,6 +4,10 @@ export default {
   theme: {
     extend: {
       // TODO pro Kunde: CI-Farben eintragen. Verwendung z. B. bg-brand, text-brand-dark
+      // Barrierefreiheit (Kontrast, WCAG 1.4.3): brand.DEFAULT und brand.dark brauchen zu Weiß
+      // mindestens 4.5:1 (für Links, Text und weiße Schrift auf Buttons), brand.dark auf brand.light
+      // ebenfalls 4.5:1 (Tags). Ist die CI-Farbe heller, DEFAULT etwas abdunkeln und die
+      // Original-Farbe z. B. als brand.ci nur für Flächen, Linien und große Schrift nutzen.
       colors: {
         brand: {
           DEFAULT: '#1e40af',
