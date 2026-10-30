@@ -111,7 +111,10 @@
    * ===================================================================== */
   function aktuelleAdresse() {
     var mm = location.hash.match(/^#\/collections\/([^/]+)\/entries\/(.+?)\/?$/);
-    return mm ? { sammlung: decodeURIComponent(mm[1]), slug: decodeURIComponent(mm[2]) } : null;
+    if (mm) return { sammlung: decodeURIComponent(mm[1]), slug: decodeURIComponent(mm[2]) };
+    // Neuer, noch nicht gespeicherter Eintrag (#/collections/<sammlung>/new)
+    var nn = location.hash.match(/^#\/collections\/([^/?]+)\/new\/?(\?.*)?$/);
+    return nn ? { sammlung: decodeURIComponent(nn[1]), neu: true } : null;
   }
 
   function eintragInfo(k, adr) {
@@ -216,7 +219,7 @@
     schalterEl.hidden = false;
     schalterEl.setAttribute('aria-checked', String(an));
     var gespeichert = zustand.neu ? false : zustand.veroeffentlicht;
-    geaendertEl.hidden = zustand.laedt || zustand.fehler || an === gespeichert;
+    geaendertEl.hidden = zustand.laedt || zustand.fehler || an === gespeichert || (zustand.neu && !an);
   }
 
   var zustand = null; // { info, veroeffentlicht, text, url, schluessel }
@@ -282,7 +285,8 @@
       return;
     }
     if (z.neu) {
-      leiste.appendChild(info('Noch nicht gespeichert. Nach dem ersten Speichern gibt es hier den Vorschaulink.'));
+      leiste.appendChild(status('Entwurf', '#c0c4cc'));
+      leiste.appendChild(info('Neu und noch nicht gespeichert – bleibt ein Entwurf, bis du „Veröffentlicht“ einschaltest. Nach dem ersten „Speichern“ gibt es hier den Vorschaulink.'));
       leiste.appendChild(geaendertEl);
       return;
     }
@@ -337,6 +341,13 @@
     }
     return ladeKonfig().then(function (k) {
       if (nr !== lauf) return;
+      // Neuer Eintrag: Leiste mit Schalter (steht auf Entwurf), Vorschaulink nach dem ersten Speichern
+      if (adr.neu) {
+        var sn = k.sammlungen[adr.sammlung];
+        zustand = sn && sn.folder && sn.vorschau_pfad ? { info: { sammlung: sn.name, pfad: '', kopierbar: false }, neu: true } : null;
+        zeichnen();
+        return;
+      }
       var inf = eintragInfo(k, adr);
       if (!inf) {
         zustand = null;

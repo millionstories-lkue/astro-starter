@@ -4,6 +4,16 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.1.1 – 30.10.2026 · CMS: neue Einträge sind sofort Entwürfe
+
+- **Fehler behoben:** Bei einem neu angelegten Eintrag (z. B. neues Projekt, neue Galerie) fehlte die Entwurfsleiste
+  unten links und es erschien noch der alte Schalter „Veröffentlicht“. Die Leiste erscheint jetzt sofort,
+  der Eintrag startet als Entwurf. Der Vorschaulink kommt nach dem ersten „Speichern“.
+- In der Vorlage für `public/admin/index.html` (Tech-Context) steht jetzt `entwuerfe.js?v=6`,
+  damit Browser die neue Fassung laden.
+
+Geänderte Dateien: `public/admin/entwuerfe.js`, `public/admin/index.html` (nur `?v=6`), `package.json`, `CHANGELOG.md`.
+
 ## 1.1.0 – 26.10.2026 · Ladezeit (PageSpeed)
 
 - **Zwischenspeicher im Browser:** neue Datei `public/.htaccess`. Bilder, Schriften und Skripte aus `/_astro/`
