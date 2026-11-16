@@ -4,6 +4,24 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.2.0 – 16.11.2026 · CMS: Entwürfe auch für eigene Sammlungen und mehrsprachige Inhalte
+
+- **„Als Entwurf kopieren“ auch für JSON-Sammlungen:** Eigene Sammlungen im JSON-Format (z. B. Pakete, Termine,
+  Produkte) bekommen in der Übersicht den Kopier-Knopf, sobald sie in `config.yml` einen `vorschau_pfad` haben.
+  Sammlungen ohne Vorschau (z. B. Weiterleitungen) weiterhin ohne Knopf.
+- **Mehrsprachige Inhalte** (Decap-Sprachmodus `single_file`, Datei `{ "de": {…}, "it": {…} }`): Die Entwurfsleiste
+  liest „Veröffentlicht“ aus dem Block der Hauptsprache (`default_locale`) und blendet das Feld in jeder Sprachspalte aus.
+  Eine Kopie wird in allen Sprachen zum Entwurf; der neue Titel gilt für die Hauptsprache, in den anderen Sprachen
+  fällt der alte Titel weg (bis zur Übersetzung zeigt die Website den Titel der Hauptsprache).
+- `seiteVeroeffentlicht()` und die häufigen Fragen in der `llms.txt` (`src/lib/bausteine.ts`) verstehen mehrsprachige
+  Seitendateien (Block `de`).
+- **BaseLayout:** neue Eigenschaft `lang` (Standard `'de'`) für `<html lang>` und `og:locale` – Grundlage für
+  italienische oder englische Seiten.
+- In der Vorlage für `public/admin/index.html` (Tech-Context) steht jetzt `entwuerfe.js?v=7`.
+
+Geänderte Dateien: `public/admin/entwuerfe.js`, `src/lib/bausteine.ts`, `src/layouts/BaseLayout.astro`,
+`public/admin/index.html` (nur `?v=7`), `package.json`, `CHANGELOG.md`.
+
 ## 1.1.1 – 30.10.2026 · CMS: neue Einträge sind sofort Entwürfe
 
 - **Fehler behoben:** Bei einem neu angelegten Eintrag (z. B. neues Projekt, neue Galerie) fehlte die Entwurfsleiste

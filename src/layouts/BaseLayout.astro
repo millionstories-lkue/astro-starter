@@ -19,14 +19,17 @@ interface Props {
    * (src/integrations/entwuerfe.mjs); eine Vorschau gibt es nur im CMS für angemeldete Personen.
    */
   entwurf?: boolean;
+  /** Sprache der Seite (z. B. 'it' oder 'en' bei mehrsprachigen Websites). Standard: Deutsch */
+  lang?: string;
 }
 
-const { title, description, image = '/default-og.jpg', noindex = false, entwurf = false } = Astro.props;
+const { title, description, image = '/default-og.jpg', noindex = false, entwurf = false, lang = 'de' } = Astro.props;
+const ogLocale = ({ de: 'de_DE', it: 'it_IT', en: 'en_GB', fr: 'fr_FR' } as Record<string, string>)[lang] ?? 'de_DE';
 const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.com');
 ---
 
 <!DOCTYPE html>
-<html lang="de" class="scroll-smooth">
+<html lang={lang} class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -47,7 +50,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:image" content={new URL(image, Astro.site || Astro.url)} />
-  <meta property="og:locale" content="de_DE" />
+  <meta property="og:locale" content={ogLocale} />
   <meta name="twitter:card" content="summary_large_image" />
 
   <!-- Sitemap für Suchmaschinen -->

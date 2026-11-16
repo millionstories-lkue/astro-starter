@@ -467,12 +467,19 @@ export async function llmsAbschnitte(site: URL | string): Promise<string> {
 
 /* ---------- Häufige Fragen aller Seiten (für llms.txt) ---------- */
 
-const seitenDateien = import.meta.glob<{
-  default: { veroeffentlicht?: boolean; faq?: { fragen?: { frage?: string; antwort?: string }[] } };
-}>(
-  '/src/data/seiten/*.json',
-  { eager: true },
-);
+type SeitenInhalt = { veroeffentlicht?: boolean; faq?: { fragen?: { frage?: string; antwort?: string }[] } };
+const seitenDateien = import.meta.glob<{ default: SeitenInhalt & Record<string, unknown> }>('/src/data/seiten/*.json', {
+  eager: true,
+});
+
+/**
+ * Inhalt einer Seitendatei. Mehrsprachige Dateien (CMS-Sprachmodus „single_file“:
+ * { "de": {…}, "it": {…} }) liefern den Block der Hauptsprache (Deutsch).
+ */
+function seitenInhalt(d?: SeitenInhalt & Record<string, unknown>): SeitenInhalt | undefined {
+  const de = d?.de;
+  return de && typeof de === 'object' && !Array.isArray(de) ? (de as SeitenInhalt) : d;
+}
 
 /**
  * Ist die Seite src/data/seiten/<name>.json veröffentlicht? Fehlt die Datei oder der Schalter
@@ -481,15 +488,16 @@ const seitenDateien = import.meta.glob<{
  * Seiten im Entwurf werden so nirgends verlinkt (ihre Adresse gibt es öffentlich nicht).
  */
 export function seiteVeroeffentlicht(name: string): boolean {
-  return seitenDateien[`/src/data/seiten/${name}.json`]?.default?.veroeffentlicht !== false;
+  return seitenInhalt(seitenDateien[`/src/data/seiten/${name}.json`]?.default)?.veroeffentlicht !== false;
 }
 
 /** Markdown-Abschnitt mit allen FAQ-Fragen aus src/data/seiten/*.json (Feld „faq“) – leer, wenn es keine gibt.
  *  Seiten im Entwurf („veroeffentlicht“: false) werden übersprungen. */
 export function llmsHaeufigeFragen(): string {
   const fragen = Object.values(seitenDateien)
-    .filter((d) => d.default?.veroeffentlicht !== false)
-    .flatMap((d) => d.default?.faq?.fragen ?? [])
+    .map((d) => seitenInhalt(d.default))
+    .filter((d) => d?.veroeffentlicht !== false)
+    .flatMap((d) => d?.faq?.fragen ?? [])
     .map((f) => ({ frage: f.frage?.trim() ?? '', antwort: f.antwort?.trim() ?? '' }))
     .filter((f) => f.frage && f.antwort);
   if (!fragen.length) return '';

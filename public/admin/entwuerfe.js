@@ -16,6 +16,12 @@
  * Wer eine veröffentlichte Seite auf „Entwurf“ stellt, wird vor dem Speichern gefragt,
  * ob sie wirklich offline gehen soll.
  *
+ * Funktioniert für Markdown-Einträge (Bausteine) und für JSON-Einträge eigener Sammlungen – auch
+ * mehrsprachig (i18n „single_file“: { "de": {…}, "it": {…} }). Dann gilt der Block der Hauptsprache
+ * (default_locale), und eine Kopie behält die Übersetzungen, nur der Titel fällt dort weg (bis er
+ * übersetzt ist, zeigt die Website den Titel der Hauptsprache). JSON-Sammlungen ohne vorschau_pfad
+ * (z. B. Weiterleitungen) bekommen keinen Kopier-Knopf.
+ *
  * Einrichtung in public/admin/config.yml – pro Sammlung bzw. pro Seite die Adresse auf der Website:
  *   - name: portfolio
  *     folder: src/data/portfolio
@@ -38,6 +44,7 @@
    * config.yml lesen (Sammlungen mit vorschau_pfad)
    * ===================================================================== */
   var konfig = null;
+  var hauptsprache = 'de'; // i18n → default_locale aus config.yml
   function ohneQuotes(w) {
     return String(w || '')
       .replace(/\s+#.*$/, '')
@@ -52,6 +59,7 @@
       })
       .then(function (t) {
         var site = ohneQuotes((t.match(/^site_url:\s*(.+)$/m) || [])[1]) || location.origin;
+        hauptsprache = ohneQuotes((t.match(/^ {2}default_locale:\s*(.+)$/m) || [])[1]) || 'de';
         var sammlungen = {};
         var s = null;
         var datei = null;
@@ -92,11 +100,29 @@
       });
   }
 
+  /* ---------- JSON-Einträge (auch mehrsprachig) ---------- */
+  function istObjekt(w) {
+    return w !== null && typeof w === 'object' && !Array.isArray(w);
+  }
+  /** Mehrsprachige Datei? Dann liegen die Felder im Block der Hauptsprache: { "de": {…}, "it": {…} } */
+  function jsonBlock(d) {
+    return istObjekt(d) && istObjekt(d[hauptsprache]) ? d[hauptsprache] : d;
+  }
+  /** Sprachblöcke einer mehrsprachigen Datei (leer bei einsprachigen Dateien) */
+  function sprachBloecke(d) {
+    if (!istObjekt(d) || !istObjekt(d[hauptsprache])) return [];
+    return Object.keys(d).filter(function (k) {
+      return /^[a-z]{2}(-[a-z0-9]+)?$/i.test(k) && istObjekt(d[k]);
+    });
+  }
+
   /** Wert von „veroeffentlicht“ (fehlt das Feld, gilt die Seite als veröffentlicht – wie beim Build) */
   function istVeroeffentlicht(text, pfad) {
     if (/\.json$/i.test(pfad)) {
       try {
-        return JSON.parse(text).veroeffentlicht !== false;
+        var d = JSON.parse(text);
+        var w = istObjekt(d) && 'veroeffentlicht' in d ? d.veroeffentlicht : jsonBlock(d).veroeffentlicht;
+        return w !== false;
       } catch (e) {
         return true;
       }
@@ -184,6 +210,15 @@
   function originalSchalter() {
     return document.querySelector('button[id^="veroeffentlicht-field"][role="switch"]');
   }
+  /** Alle Felder „Veröffentlicht“ im Formular (mehrsprachig: eines pro Sprachspalte) */
+  function alleSchalterFelder() {
+    var liste = [];
+    Array.prototype.forEach.call(document.querySelectorAll('button[id^="veroeffentlicht-field"][role="switch"]'), function (b) {
+      var f = b.closest('[class*="ControlContainer"]');
+      if (f && liste.indexOf(f) < 0) liste.push(f);
+    });
+    return liste;
+  }
   var schalterEl = document.createElement('button');
   schalterEl.type = 'button';
   schalterEl.className = 'ms-el-schalter';
@@ -201,20 +236,24 @@
   /** Leisten-Schalter mit dem Feld abgleichen, Feld im Formular ausblenden */
   function abgleichen() {
     var o = originalSchalter();
-    var feld = o && o.closest('[class*="ControlContainer"]');
+    var felder = alleSchalterFelder();
     if (!zustand || !o) {
       schalterEl.hidden = true;
       geaendertEl.hidden = true;
-      if (feld && feld.dataset.msVersteckt) {
-        feld.style.display = '';
-        delete feld.dataset.msVersteckt;
-      }
+      felder.forEach(function (feld) {
+        if (feld.dataset.msVersteckt) {
+          feld.style.display = '';
+          delete feld.dataset.msVersteckt;
+        }
+      });
       return;
     }
-    if (feld && !feld.dataset.msVersteckt) {
-      feld.style.display = 'none';
-      feld.dataset.msVersteckt = '1';
-    }
+    felder.forEach(function (feld) {
+      if (!feld.dataset.msVersteckt) {
+        feld.style.display = 'none';
+        feld.dataset.msVersteckt = '1';
+      }
+    });
     var an = o.getAttribute('aria-checked') === 'true';
     schalterEl.hidden = false;
     schalterEl.setAttribute('aria-checked', String(an));
@@ -393,6 +432,12 @@
     return '---\n' + kopf + '\n---' + text.slice(fm[0].length);
   }
   function titelLesen(text, feld) {
+    if (!/^---/.test(text)) {
+      try {
+        var w0 = jsonBlock(JSON.parse(text))[feld];
+        return typeof w0 === 'string' ? w0 : '';
+      } catch (e) {}
+    }
     var fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     var w = fm && fm[1].match(new RegExp('^' + feld + ':\\s*(.*)$', 'm'));
     if (!w) return '';
@@ -403,6 +448,27 @@
       } catch (e) {}
     }
     return roh.replace(/^'(.*)'$/, '$1').replace(/''/g, "'");
+  }
+
+  /**
+   * Kopie eines JSON-Eintrags: Entwurf, neuer Titel in der Hauptsprache. In den anderen Sprachen
+   * fällt der Titel weg (die Website zeigt bis zur Übersetzung den Titel der Hauptsprache).
+   */
+  function jsonKopie(text, titelFeld, titel) {
+    var d = JSON.parse(text);
+    var bloecke = sprachBloecke(d);
+    if (!bloecke.length) {
+      d.veroeffentlicht = false;
+      d[titelFeld] = titel;
+    } else {
+      if ('veroeffentlicht' in d) d.veroeffentlicht = false;
+      bloecke.forEach(function (k) {
+        d[k].veroeffentlicht = false;
+        if (k === hauptsprache) d[k][titelFeld] = titel;
+        else delete d[k][titelFeld];
+      });
+    }
+    return JSON.stringify(d, null, 2) + '\n';
   }
 
   /** Adresse aus dem Titel bilden – wie Decap (slug: ascii, clean_accents, Ersatz „-“) */
@@ -450,8 +516,12 @@
       })
       .then(function (slug) {
         if (!slug) return null;
-        var neu = frontmatterSetzen(text, 'veroeffentlicht', 'false');
-        neu = frontmatterSetzen(neu, inf.titelFeld, JSON.stringify(titel));
+        var neu;
+        if (ext.toLowerCase() === '.json') neu = jsonKopie(text, inf.titelFeld, titel);
+        else {
+          neu = frontmatterSetzen(text, 'veroeffentlicht', 'false');
+          neu = frontmatterSetzen(neu, inf.titelFeld, JSON.stringify(titel));
+        }
         return m()
           .commit([{ pfad: inf.ordner + '/' + slug + ext, text: neu }], 'Entwurf kopiert: ' + inf.sammlung + ' „' + slug + '“')
           .then(function () {
@@ -520,8 +590,10 @@
       var s = k.sammlungen[name];
       if (s && !s.folder) return seitenEtiketten(s);
       if (!s || !s.folder) return;
-      // Kopieren nur für Einträge mit Text (Markdown), nicht z. B. für Weiterleitungen (JSON)
-      if (s.extension && s.extension !== 'md') return;
+      // Kopieren für Markdown-Einträge und für JSON-Sammlungen mit Vorschau (vorschau_pfad),
+      // nicht z. B. für Weiterleitungen
+      var ext = s.extension || 'md';
+      if (ext !== 'md' && !(ext === 'json' && s.vorschau_pfad)) return;
       var links = document.querySelectorAll('a[href^="#/collections/' + name + '/entries/"]');
       Array.prototype.forEach.call(links, function (a) {
         var karte = a.parentElement;
