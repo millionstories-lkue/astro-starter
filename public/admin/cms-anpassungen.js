@@ -13,6 +13,11 @@
  *    Tag-Felds, Standard „tags“). Zeigt außerdem Tags, die in Einträgen stehen, aber nicht
  *    (mehr) in der Liste – zum Aufnehmen oder Entfernen.
  *
+ * 4. Bereiche mit nur einer Datei (files-Sammlung mit genau einem Eintrag, z. B.
+ *    „Kontakt & Öffnungszeiten“) öffnen beim Klick im Menü direkt die Bearbeitung –
+ *    ohne Zwischenseite mit nur einem Eintrag. Für einen Bereich ausschalten:
+ *    `direkt_oeffnen: false` in der Sammlung.
+ *
  * Verwendung in public/admin/config.yml (Listen-Datei):
  *   - { label: Tags, name: tags, label_singular: Tag, widget: tagliste, eintraege: src/data/portfolio }
  * Benötigt mediathek.js (GitHub-Zugriff). Diese Datei ist Teil des Starter-Repos – nicht verändern.
@@ -551,4 +556,53 @@
   });
 
   window.CMS.registerWidget('tagliste', TagListe);
+
+  /* =====================================================================
+   * 4. Bereiche mit nur einer Datei direkt öffnen
+   * ===================================================================== */
+  var einzelDateien = {}; // Sammlung → Name der einzigen Datei
+  fetch('/admin/config.yml', { cache: 'no-store' })
+    .then(function (r) {
+      return r.text();
+    })
+    .then(function (text) {
+      var sammlungen = {};
+      var aktuell = null;
+      var inDateien = false;
+      text.split(/\r?\n/).forEach(function (zeile) {
+        var s = zeile.match(/^ {2}- name:\s*['"]?([\w-]+)/);
+        if (s) {
+          aktuell = sammlungen[s[1]] = { dateien: [], aus: false };
+          inDateien = false;
+          return;
+        }
+        if (!aktuell) return;
+        if (/^ {4}direkt_oeffnen:\s*false/.test(zeile)) aktuell.aus = true;
+        if (/^ {4}files:/.test(zeile)) {
+          inDateien = true;
+          return;
+        }
+        if (/^ {4}\S/.test(zeile)) inDateien = false;
+        var d = inDateien && zeile.match(/^ {6}- name:\s*['"]?([\w-]+)/);
+        if (d) aktuell.dateien.push(d[1]);
+      });
+      Object.keys(sammlungen).forEach(function (n) {
+        if (sammlungen[n].dateien.length === 1 && !sammlungen[n].aus) einzelDateien[n] = sammlungen[n].dateien[0];
+      });
+      direktOeffnen();
+    })
+    .catch(function () {});
+
+  var letzteAdresse = location.hash;
+  function direktOeffnen() {
+    var m = location.hash.match(/^#\/collections\/([\w-]+)\/?$/);
+    var datei = m && einzelDateien[m[1]];
+    if (datei) {
+      // Zurück aus der Bearbeitung → zur Startseite des CMS statt sofort wieder in die Bearbeitung
+      var ausBearbeitung = letzteAdresse.indexOf('#/collections/' + m[1] + '/entries/') === 0;
+      location.replace(ausBearbeitung ? '#/' : '#/collections/' + m[1] + '/entries/' + datei);
+    }
+    letzteAdresse = location.hash;
+  }
+  window.addEventListener('hashchange', direktOeffnen);
 })();

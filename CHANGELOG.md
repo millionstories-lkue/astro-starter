@@ -4,6 +4,22 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.3.0 – 16.11.2026 · Mediathek: Bildbeschreibungen in allen Sprachen
+
+- **Mehrsprachige Bildbeschreibungen in der Mediathek:** Ist die Website mehrsprachig (`i18n` mit `locales` in
+  `config.yml`), zeigt das Bildfenster der Mediathek unter der Beschreibung der Hauptsprache je weitere Sprache
+  ein eigenes Feld. Gespeichert wird in `src/data/medien.json` unter `alt_sprachen`
+  (`{ "it": { "<bildpfad>": "…" }, "en": { … } }`). Leere Felder = die Beschreibung der Hauptsprache gilt.
+  Beim Löschen eines Bildes werden alle Sprachen mit entfernt. Einsprachige Websites: keine Änderung.
+- `src/lib/cms-bild.ts`: `cmsAlt(pfad, alt, sprache)` – neue, freiwillige dritte Angabe `sprache`
+  (z. B. `'it'`). Bisherige Aufrufe funktionieren unverändert.
+- **CMS-Menü:** Bereiche mit nur einer Datei (z. B. „Kontakt & Öffnungszeiten“) öffnen beim Klick direkt die
+  Bearbeitung statt einer Liste mit einem Eintrag. Abschalten pro Bereich mit `direkt_oeffnen: false`.
+
+Geänderte Dateien: `public/admin/mediathek.js`, `public/admin/cms-anpassungen.js`, `src/lib/cms-bild.ts`,
+`package.json`, `CHANGELOG.md`. In Kundenprojekten `admin/index.html` die Versionsnummern
+(`mediathek.js?v=…`, `cms-anpassungen.js?v=…`) hochzählen, damit Browser die neuen Dateien laden.
+
 ## 1.2.2 – 16.11.2026 · Sprunglink und Menüknopf in der Sprache der Seite
 
 - `src/layouts/BaseLayout.astro`: Der Link „Zum Inhalt springen“ folgt der Eigenschaft `lang`

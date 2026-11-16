@@ -28,11 +28,15 @@ export function cmsBild(pfad?: string | null): ImageMetadata | undefined {
 }
 
 /**
- * Zentrale Bildbeschreibungen aus der Mediathek im CMS (src/data/medien.json, Feld „alt“).
+ * Zentrale Bildbeschreibungen aus der Mediathek im CMS (src/data/medien.json):
+ * Feld „alt“ = Hauptsprache, Feld „alt_sprachen“ = weitere Sprachen ({ "it": { "<bildpfad>": "…" } }).
  * Die Datei entsteht beim ersten Speichern einer Beschreibung – fehlt sie, gilt nur die Beschreibung am Bild.
  */
 const medien = Object.values(
-  import.meta.glob<{ alt?: Record<string, string> }>('/src/data/medien.json', { eager: true, import: 'default' }),
+  import.meta.glob<{ alt?: Record<string, string>; alt_sprachen?: Record<string, Record<string, string>> }>('/src/data/medien.json', {
+    eager: true,
+    import: 'default',
+  }),
 )[0];
 
 /**
@@ -40,11 +44,15 @@ const medien = Object.values(
  * sonst eine ältere, direkt am Bild gespeicherte Beschreibung, sonst ''. Eigene Ersatztexte
  * danach mit || anhängen:
  *   alt={cmsAlt(bild, bildAlt) || `${titel} – Foto 1`}
+ * Mehrsprachige Websites geben die Sprache mit (z. B. 'it'). Fehlt die Übersetzung,
+ * gilt die Beschreibung der Hauptsprache:
+ *   alt={cmsAlt(bild, undefined, sprache)}
  */
-export function cmsAlt(pfad?: string | null, alt?: string | null): string {
+export function cmsAlt(pfad?: string | null, alt?: string | null, sprache?: string): string {
   const p = cmsPfad(pfad)?.slice(1);
+  const uebersetzt = p && sprache ? medien?.alt_sprachen?.[sprache]?.[p]?.trim() : '';
   const zentral = p ? medien?.alt?.[p]?.trim() : '';
-  return zentral || alt?.trim() || '';
+  return uebersetzt || zentral || alt?.trim() || '';
 }
 
 /** Dateien zum Herunterladen aus dem CMS (z. B. PDF) unter src/assets/cms/ */

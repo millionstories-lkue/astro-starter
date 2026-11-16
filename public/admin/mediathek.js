@@ -12,6 +12,10 @@
  *   verwendet wird, mit Rückfrage „Endgültig löschen?“
  * - zentrale Bildbeschreibung (Alt-Text) pro Bild in src/data/medien.json. Sie ist die
  *   einzige Stelle für Beschreibungen und gilt überall, wo das Bild eingesetzt ist.
+ * - mehrsprachige Websites (i18n in config.yml mit locales): je weitere Sprache ein eigenes
+ *   Feld für die Beschreibung, gespeichert in medien.json unter „alt_sprachen“
+ *   ({ "it": { "<bildpfad>": "…" }, "en": { … } }). Leer = die Website zeigt die Beschreibung
+ *   der Hauptsprache. Beim Löschen eines Bildes werden alle Sprachen mit entfernt.
  *   Beschreibungen aus der Zeit davor (direkt am Bild gespeichert) werden als Vorschlag
  *   angezeigt und lassen sich mit einem Klick übernehmen.
  *
@@ -46,7 +50,11 @@
   }
   var TEXT_RE = /\.(md|mdx|json|ya?ml|astro|ts|js|mjs)$/i;
 
-  var optionen = { altTexte: true };
+  var optionen = { altTexte: true, sprachen: [] };
+  var SPRACHNAMEN = { de: 'Deutsch', it: 'Italienisch', en: 'Englisch', fr: 'Französisch', es: 'Spanisch', nl: 'Niederländisch', pt: 'Portugiesisch', pl: 'Polnisch', cs: 'Tschechisch', da: 'Dänisch', sv: 'Schwedisch', ru: 'Russisch', ja: 'Japanisch', zh: 'Chinesisch', tr: 'Türkisch', hu: 'Ungarisch', sl: 'Slowenisch', hr: 'Kroatisch', ro: 'Rumänisch', el: 'Griechisch' };
+  function sprachName(code) {
+    return SPRACHNAMEN[code] || code.toUpperCase();
+  }
 
   /* =====================================================================
    * Hilfen
@@ -126,6 +134,19 @@
           if (mf && aktuell) sammlungen[aktuell] = ohneSchraegstrich(mf[1]).replace(/\/+$/, '');
         });
         if (/^\s*alt_texte:\s*false/m.test(t)) optionen.altTexte = false;
+        // Mehrsprachig? (oberste Ebene: i18n: { locales: [de, it, en], default_locale: de })
+        var i18n = (t.match(/^i18n:[^\n]*(?:\n[ \t]+[^\n]*)*/m) || [])[0] || '';
+        var locales = ((i18n.match(/locales:\s*\[([^\]]*)\]/) || [])[1] || '')
+          .split(',')
+          .map(function (s) {
+            return s.replace(/['"\s]/g, '');
+          })
+          .filter(Boolean);
+        var haupt = (i18n.match(/default_locale:\s*['"]?([\w-]+)/) || [])[1] || locales[0];
+        optionen.hauptsprache = haupt;
+        optionen.sprachen = locales.filter(function (s) {
+          return s !== haupt;
+        });
         return { repo: repo, branch: branch, wurzel: wurzel, sammlungen: sammlungen };
       });
     return einstellungen;
@@ -393,12 +414,13 @@
             d = JSON.parse(txt) || {};
           } catch (x) {}
           if (!d.alt || typeof d.alt !== 'object') d.alt = {};
+          if (!d.alt_sprachen || typeof d.alt_sprachen !== 'object') d.alt_sprachen = {};
           altStand = { daten: d, geladen: true };
           return altStand;
         },
         function (fehler) {
           if (fehler.status === 404) {
-            altStand = { daten: { alt: {} }, geladen: true };
+            altStand = { daten: { alt: {}, alt_sprachen: {} }, geladen: true };
             return altStand;
           }
           throw fehler;
@@ -406,18 +428,41 @@
       );
     });
   }
-  function altJson(daten) {
+  function sortiere(liste) {
     var sortiert = {};
-    Object.keys(daten.alt || {})
+    Object.keys(liste || {})
       .sort()
       .forEach(function (k) {
-        if (daten.alt[k]) sortiert[k] = daten.alt[k];
+        if (liste[k]) sortiert[k] = liste[k];
       });
-    var aus = Object.assign({}, daten, { alt: sortiert });
+    return sortiert;
+  }
+  function altJson(daten) {
+    var aus = Object.assign({}, daten, { alt: sortiere(daten.alt) });
+    var sprachen = {};
+    Object.keys(daten.alt_sprachen || {})
+      .sort()
+      .forEach(function (s) {
+        var liste = sortiere(daten.alt_sprachen[s]);
+        if (Object.keys(liste).length) sprachen[s] = liste;
+      });
+    if (Object.keys(sprachen).length) aus.alt_sprachen = sprachen;
+    else delete aus.alt_sprachen;
     return JSON.stringify(aus, null, 2) + '\n';
   }
   function zentralerAlt(pfad) {
     return (altStand.daten.alt || {})[ohneSchraegstrich(pfad)] || '';
+  }
+  function uebersetzterAlt(pfad, sprache) {
+    return ((altStand.daten.alt_sprachen || {})[sprache] || {})[ohneSchraegstrich(pfad)] || '';
+  }
+  function hatBeschreibung(pfad) {
+    return (
+      Boolean(zentralerAlt(pfad)) ||
+      Object.keys(altStand.daten.alt_sprachen || {}).some(function (s) {
+        return Boolean(uebersetzterAlt(pfad, s));
+      })
+    );
   }
 
   // Wo wird ein Bild verwendet? (gespeicherte Inhalte + gerade geöffnete Felder)
@@ -609,6 +654,7 @@
     '.mt-detail-bild{background:#eff0f4;border-radius:8px;height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#9aa1ad}' +
     '.mt-detail-bild img{max-width:100%;max-height:100%;object-fit:contain}' +
     '.mt-detail h3{margin:0;font-size:15px;word-break:break-all}.mt-meta{margin:0;color:#798291;font-size:12px}' +
+    '.mt-alt-box{display:flex;flex-direction:column}.mt-alt-box>.mt-k{margin-top:8px;align-self:flex-start}' +
     '.mt-detail textarea{width:100%;box-sizing:border-box;min-height:80px;border:1px solid #cfd3da;border-radius:6px;padding:8px;font:inherit;resize:vertical}' +
     '.mt-detail ul{margin:4px 0 0;padding-left:18px}.mt-hinweis{font-size:12px;color:#798291;margin:0}' +
     '.mt-fuss{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 18px;border-top:1px solid #e3e5ea}' +
@@ -967,23 +1013,40 @@
         var feld = el('textarea', { id: 'mt-alt', placeholder: 'Was ist auf dem Bild zu sehen?' });
         var vorschlag = !zentralerAlt(b.pfad) && st.vorschlaege && st.vorschlaege[b.pfad];
         feld.value = zentralerAlt(b.pfad) || vorschlag || '';
-        var speichern = el('button', { type: 'button', class: 'mt-k mt-k-blau', text: 'Beschreibung speichern' });
-        speichern.addEventListener('click', function () {
-          speichereAlt(b.pfad, feld.value.trim(), speichern);
+        var mehrsprachig = optionen.sprachen.length > 0;
+        var speichern = el('button', { type: 'button', class: 'mt-k mt-k-blau', text: mehrsprachig ? 'Beschreibungen speichern' : 'Beschreibung speichern' });
+        var sprachFelder = optionen.sprachen.map(function (s) {
+          var f = el('textarea', { id: 'mt-alt-' + s, placeholder: 'Leer = ' + sprachName(optionen.hauptsprache) + 'e Beschreibung wird verwendet', lang: s });
+          f.value = uebersetzterAlt(b.pfad, s);
+          return { sprache: s, feld: f };
         });
-        detail.appendChild(
-          el('div', null, [
-            el('label', { for: 'mt-alt', style: 'font-weight:600;display:block;margin-bottom:4px', text: 'Beschreibung (Alt-Text)' }),
-            feld,
-            el('p', {
-              class: 'mt-hinweis',
-              text: vorschlag
-                ? 'Vorschlag aus der bisherigen Beschreibung im Eintrag – mit „Beschreibung speichern“ übernehmen. Gilt dann überall, wo das Bild eingesetzt ist.'
-                : 'Gilt überall auf der Website, wo das Bild eingesetzt ist.',
-            }),
-            speichern,
-          ]),
-        );
+        speichern.addEventListener('click', function () {
+          var uebersetzt = {};
+          sprachFelder.forEach(function (x) {
+            uebersetzt[x.sprache] = x.feld.value.trim();
+          });
+          speichereAlt(b.pfad, feld.value.trim(), speichern, uebersetzt);
+        });
+        var altBox = el('div', { class: 'mt-alt-box' }, [
+          el('label', {
+            for: 'mt-alt',
+            style: 'font-weight:600;display:block;margin-bottom:4px',
+            text: mehrsprachig ? 'Beschreibung (Alt-Text) · ' + sprachName(optionen.hauptsprache) : 'Beschreibung (Alt-Text)',
+          }),
+          feld,
+          el('p', {
+            class: 'mt-hinweis',
+            text: vorschlag
+              ? 'Vorschlag aus der bisherigen Beschreibung im Eintrag – mit „' + speichern.textContent + '“ übernehmen. Gilt dann überall, wo das Bild eingesetzt ist.'
+              : 'Gilt überall auf der Website, wo das Bild eingesetzt ist.',
+          }),
+        ]);
+        sprachFelder.forEach(function (x) {
+          altBox.appendChild(el('label', { for: x.feld.id, style: 'font-weight:600;display:block;margin:6px 0 4px', text: sprachName(x.sprache) }));
+          altBox.appendChild(x.feld);
+        });
+        altBox.appendChild(speichern);
+        detail.appendChild(altBox);
       }
 
       var orte = (st.verwendung && st.verwendung[b.pfad]) || [];
@@ -1075,7 +1138,7 @@
     }
     if (knopfUebernehmen) knopfUebernehmen.addEventListener('click', uebernehmen);
 
-    function speichereAlt(pfad, text, knopf) {
+    function speichereAlt(pfad, text, knopf, uebersetzt) {
       knopf.disabled = true;
       meldung('Beschreibung wird gespeichert …');
       ladeAlt()
@@ -1083,6 +1146,11 @@
           var d = stand.daten;
           if (text) d.alt[pfad] = text;
           else delete d.alt[pfad];
+          Object.keys(uebersetzt || {}).forEach(function (s) {
+            if (!d.alt_sprachen[s]) d.alt_sprachen[s] = {};
+            if (uebersetzt[s]) d.alt_sprachen[s][pfad] = uebersetzt[s];
+            else delete d.alt_sprachen[s][pfad];
+          });
           return commit([{ pfad: ALT_DATEI, text: altJson(d) }], 'Bildbeschreibung geändert: ' + dateiname(pfad));
         })
         .then(
@@ -1171,7 +1239,7 @@
       zeichneFuss();
       meldung('Wird gelöscht …');
       var mitAlt = pfade.some(function (p) {
-        return zentralerAlt(p);
+        return hatBeschreibung(p);
       });
       (mitAlt ? ladeAlt() : Promise.resolve(null))
         .then(function (stand) {
@@ -1181,6 +1249,9 @@
           if (stand) {
             pfade.forEach(function (p) {
               delete stand.daten.alt[p];
+              Object.keys(stand.daten.alt_sprachen || {}).forEach(function (s) {
+                delete stand.daten.alt_sprachen[s][p];
+              });
             });
             aenderungen.push({ pfad: ALT_DATEI, text: altJson(stand.daten) });
           }
