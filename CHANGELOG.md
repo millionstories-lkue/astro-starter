@@ -4,6 +4,15 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.2.2 – 16.11.2026 · Sprunglink und Menüknopf in der Sprache der Seite
+
+- `src/layouts/BaseLayout.astro`: Der Link „Zum Inhalt springen“ folgt der Eigenschaft `lang`
+  (Italienisch „Vai al contenuto“, Englisch „Skip to content“, Französisch „Aller au contenu“).
+- `src/lib/menue.ts`: Die Beschriftung „Menü öffnen/schließen“ des mobilen Menüknopfs folgt `<html lang>`.
+- Für deutsche Seiten ändert sich nichts.
+
+Geänderte Dateien: `src/layouts/BaseLayout.astro`, `src/lib/menue.ts`, `package.json`, `CHANGELOG.md`.
+
 ## 1.2.1 – 16.11.2026 · Formulare: Fehlermeldungen in der Sprache der Seite
 
 - `src/lib/formular-pruefung.ts` zeigt die Fehlermeldungen am Feld und die Zusammenfassung („Bitte prüfen Sie …“)

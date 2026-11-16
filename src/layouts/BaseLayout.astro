@@ -25,6 +25,7 @@ interface Props {
 
 const { title, description, image = '/default-og.jpg', noindex = false, entwurf = false, lang = 'de' } = Astro.props;
 const ogLocale = ({ de: 'de_DE', it: 'it_IT', en: 'en_GB', fr: 'fr_FR' } as Record<string, string>)[lang] ?? 'de_DE';
+const sprungText = ({ de: 'Zum Inhalt springen', it: 'Vai al contenuto', en: 'Skip to content', fr: 'Aller au contenu' } as Record<string, string>)[lang] ?? 'Zum Inhalt springen';
 const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.com');
 ---
 
@@ -74,7 +75,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
 <body class="bg-white text-slate-900 antialiased min-h-screen flex flex-col">
   <!-- Barrierefreiheit: Tastaturnutzer können die Navigation überspringen -->
   <a href="#inhalt" class="skip-link sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:font-semibold focus:text-slate-900 focus:shadow-lg">
-    Zum Inhalt springen
+    {sprungText}
   </a>
   <slot name="header" />
   <!-- tabindex="-1": Der Sprunglink setzt den Fokus wirklich in den Inhalt (auch in Safari) -->

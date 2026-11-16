@@ -16,7 +16,19 @@
  * (das Attribut hidden lässt sich per CSS nicht zuverlässig überschreiben). Knopf ab Desktop
  * ausblenden, z. B. class="lg:hidden" – ein offenes Menü schließt sich dann beim Vergrößern.
  * Zum Gestalten: [data-menue-offen] am <html>, aria-expanded="true" am Knopf.
+ * Die Beschriftung „Menü öffnen/schließen“ folgt der Sprache der Seite (<html lang>: de, it, en, fr).
  */
+/** Beschriftung des Menüknopfs in der Sprache der Seite (<html lang>) */
+const MENUE_TEXTE: Record<string, { auf: string; zu: string }> = {
+  de: { auf: 'Menü öffnen', zu: 'Menü schließen' },
+  it: { auf: 'Apri il menu', zu: 'Chiudi il menu' },
+  en: { auf: 'Open menu', zu: 'Close menu' },
+  fr: { auf: 'Ouvrir le menu', zu: 'Fermer le menu' },
+};
+function menueText() {
+  return MENUE_TEXTE[(document.documentElement.lang || 'de').slice(0, 2).toLowerCase()] ?? MENUE_TEXTE.de;
+}
+
 export function menueVerbinden() {
   document.querySelectorAll<HTMLButtonElement>('[data-menue-knopf]').forEach((knopf) => {
     if (knopf.dataset.menueVerbunden) return;
@@ -37,7 +49,7 @@ export function menueVerbinden() {
       offen = auf;
       menue.hidden = !auf;
       knopf.setAttribute('aria-expanded', String(auf));
-      if (text) text.textContent = auf ? 'Menü schließen' : 'Menü öffnen';
+      if (text) text.textContent = auf ? menueText().zu : menueText().auf;
       document.documentElement.toggleAttribute('data-menue-offen', auf);
       if (vollbild) {
         ausserhalb().forEach((el) => (el.inert = auf));
