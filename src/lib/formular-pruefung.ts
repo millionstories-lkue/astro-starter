@@ -14,9 +14,66 @@
  * Eigener Fehlertext pro Feld: data-fehler="Bitte geben Sie Ihren Namen ein."
  * Ort der Meldung: hinter dem Element mit data-feld (sonst hinter dem Feld bzw. seinem Elternelement).
  * Gestaltung: .feld-fehler und [aria-invalid='true'] in src/styles/global.css.
+ * Sprache der Meldungen: nach <html lang> (Deutsch, Italienisch, Englisch; sonst Deutsch).
  */
 
 type Feld = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
+/** Meldungen je Sprache (Sprache der Seite aus <html lang>) */
+const TEXTE = {
+  de: {
+    haekchenName: (n: string) => `Bitte bestätigen Sie: ${n}.`,
+    haekchen: 'Bitte setzen Sie hier ein Häkchen.',
+    auswahlName: (n: string) => `Bitte wählen Sie „${n}“ aus.`,
+    auswahl: 'Bitte wählen Sie etwas aus.',
+    feldName: (n: string) => `Bitte füllen Sie das Feld „${n}“ aus.`,
+    feld: 'Bitte füllen Sie dieses Feld aus.',
+    email: 'Bitte geben Sie eine gültige E-Mail-Adresse ein, z. B. name@beispiel.de.',
+    url: 'Bitte geben Sie eine vollständige Adresse mit https:// ein.',
+    kurz: (n: number) => `Bitte geben Sie mindestens ${n} Zeichen ein.`,
+    lang: (n: number) => `Bitte geben Sie höchstens ${n} Zeichen ein.`,
+    bereich: 'Bitte geben Sie einen Wert im erlaubten Bereich ein.',
+    pruefen: 'Bitte prüfen Sie Ihre Eingabe.',
+    einFeld: 'Bitte prüfen Sie das markierte Feld.',
+    mehrere: (n: number) => `Bitte prüfen Sie die ${n} markierten Felder.`,
+  },
+  it: {
+    haekchenName: (n: string) => `Si prega di confermare: ${n}.`,
+    haekchen: 'Si prega di spuntare questa casella.',
+    auswahlName: (n: string) => `Si prega di selezionare «${n}».`,
+    auswahl: 'Si prega di effettuare una scelta.',
+    feldName: (n: string) => `Si prega di compilare il campo «${n}».`,
+    feld: 'Si prega di compilare questo campo.',
+    email: 'Si prega di inserire un indirizzo e-mail valido, ad es. nome@esempio.it.',
+    url: 'Si prega di inserire un indirizzo completo con https://.',
+    kurz: (n: number) => `Si prega di inserire almeno ${n} caratteri.`,
+    lang: (n: number) => `Si prega di inserire al massimo ${n} caratteri.`,
+    bereich: 'Si prega di inserire un valore consentito.',
+    pruefen: 'Si prega di verificare i dati inseriti.',
+    einFeld: 'Si prega di verificare il campo evidenziato.',
+    mehrere: (n: number) => `Si prega di verificare i ${n} campi evidenziati.`,
+  },
+  en: {
+    haekchenName: (n: string) => `Please confirm: ${n}.`,
+    haekchen: 'Please tick this box.',
+    auswahlName: (n: string) => `Please select “${n}”.`,
+    auswahl: 'Please make a selection.',
+    feldName: (n: string) => `Please fill in “${n}”.`,
+    feld: 'Please fill in this field.',
+    email: 'Please enter a valid email address, e.g. name@example.com.',
+    url: 'Please enter a full address starting with https://.',
+    kurz: (n: number) => `Please enter at least ${n} characters.`,
+    lang: (n: number) => `Please enter no more than ${n} characters.`,
+    bereich: 'Please enter a value within the allowed range.',
+    pruefen: 'Please check your entry.',
+    einFeld: 'Please check the highlighted field.',
+    mehrere: (n: number) => `Please check the ${n} highlighted fields.`,
+  },
+};
+function texte() {
+  const sprache = (document.documentElement.lang || 'de').slice(0, 2).toLowerCase();
+  return TEXTE[sprache as keyof typeof TEXTE] ?? TEXTE.de;
+}
 
 function beschriftung(feld: Feld): string {
   const label = feld.labels?.[0];
@@ -32,18 +89,19 @@ function meldung(feld: Feld): string {
   const v = feld.validity;
   if (feld.dataset.fehler && (v.valueMissing || v.typeMismatch || v.patternMismatch)) return feld.dataset.fehler;
   const name = beschriftung(feld);
+  const x = texte();
   if (v.valueMissing) {
     if (feld instanceof HTMLInputElement && (feld.type === 'checkbox' || feld.type === 'radio'))
-      return name ? `Bitte bestätigen Sie: ${name}.` : 'Bitte setzen Sie hier ein Häkchen.';
-    if (feld instanceof HTMLSelectElement) return name ? `Bitte wählen Sie „${name}“ aus.` : 'Bitte wählen Sie etwas aus.';
-    return name ? `Bitte füllen Sie das Feld „${name}“ aus.` : 'Bitte füllen Sie dieses Feld aus.';
+      return name ? x.haekchenName(name) : x.haekchen;
+    if (feld instanceof HTMLSelectElement) return name ? x.auswahlName(name) : x.auswahl;
+    return name ? x.feldName(name) : x.feld;
   }
-  if (v.typeMismatch && feld.type === 'email') return 'Bitte geben Sie eine gültige E-Mail-Adresse ein, z. B. name@beispiel.de.';
-  if (v.typeMismatch && feld.type === 'url') return 'Bitte geben Sie eine vollständige Adresse mit https:// ein.';
-  if (v.tooShort) return `Bitte geben Sie mindestens ${(feld as HTMLInputElement).minLength} Zeichen ein.`;
-  if (v.tooLong) return `Bitte geben Sie höchstens ${(feld as HTMLInputElement).maxLength} Zeichen ein.`;
-  if (v.rangeUnderflow || v.rangeOverflow) return 'Bitte geben Sie einen Wert im erlaubten Bereich ein.';
-  return feld.dataset.fehler || feld.validationMessage || 'Bitte prüfen Sie Ihre Eingabe.';
+  if (v.typeMismatch && feld.type === 'email') return x.email;
+  if (v.typeMismatch && feld.type === 'url') return x.url;
+  if (v.tooShort) return x.kurz((feld as HTMLInputElement).minLength);
+  if (v.tooLong) return x.lang((feld as HTMLInputElement).maxLength);
+  if (v.rangeUnderflow || v.rangeOverflow) return x.bereich;
+  return feld.dataset.fehler || feld.validationMessage || x.pruefen;
 }
 
 function fehlerElement(feld: Feld): HTMLElement {
@@ -96,10 +154,7 @@ export function formularPruefen(form: HTMLFormElement) {
       const status = form.querySelector<HTMLElement>('[data-formhub-status]');
       if (status) {
         status.dataset.status = 'error';
-        status.textContent =
-          fehlerhaft.length === 1
-            ? 'Bitte prüfen Sie das markierte Feld.'
-            : `Bitte prüfen Sie die ${fehlerhaft.length} markierten Felder.`;
+        status.textContent = fehlerhaft.length === 1 ? texte().einFeld : texte().mehrere(fehlerhaft.length);
       }
       fehlerhaft[0].focus();
     },

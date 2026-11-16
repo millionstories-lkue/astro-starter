@@ -4,6 +4,14 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.2.1 – 16.11.2026 · Formulare: Fehlermeldungen in der Sprache der Seite
+
+- `src/lib/formular-pruefung.ts` zeigt die Fehlermeldungen am Feld und die Zusammenfassung („Bitte prüfen Sie …“)
+  in der Sprache der Seite (`<html lang>`): Deutsch, Italienisch oder Englisch. Eigene Texte über `data-fehler`
+  gehen wie bisher vor. Für deutsche Seiten ändert sich nichts.
+
+Geänderte Dateien: `src/lib/formular-pruefung.ts`, `package.json`, `CHANGELOG.md`.
+
 ## 1.2.0 – 16.11.2026 · CMS: Entwürfe auch für eigene Sammlungen und mehrsprachige Inhalte
 
 - **„Als Entwurf kopieren“ auch für JSON-Sammlungen:** Eigene Sammlungen im JSON-Format (z. B. Pakete, Termine,
