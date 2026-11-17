@@ -32,9 +32,13 @@ const absaetze = (text: string) =>
     .map((a) => a.trim())
     .filter(Boolean);
 
+// Feste Kennung (@id) und Verknüpfung mit der Seite – siehe src/lib/schema.ts
+const seitenUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 const schema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
+  '@id': `${seitenUrl}#${id}`,
+  isPartOf: { '@id': `${seitenUrl}#webseite` },
   mainEntity: items.map((f) => ({
     '@type': 'Question',
     name: f.frage,

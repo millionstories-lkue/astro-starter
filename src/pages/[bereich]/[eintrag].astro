@@ -46,11 +46,13 @@ const schemaBilder = await Promise.all(
 const schema = [eintragSchema(eintrag, site, schemaBilder), brotkrumenSchema(eintrag.baustein, site, eintrag)];
 
 const titel = `${eintrag.titel} | ${projekt.firmenname}`;
+// Beiträge und Projekte: Datum für Social-Media-Vorschauen (Termine haben ihr eigenes Datum)
+const artikel = eintrag.baustein !== 'events' && eintrag.datum ? { veroeffentlicht: eintrag.datum, geaendert: eintrag.aktualisiert } : undefined;
 const beschreibung =
   eintrag.kurztext ?? (eintrag.termin ? `${eintrag.termin.text}: ${eintrag.titel}` : `${eintrag.titel} – ${projekt.firmenname}`);
 ---
 
-<BaseLayout title={titel} description={beschreibung} image={og?.src} entwurf={entwurf}>
+<BaseLayout title={titel} description={beschreibung} image={og?.src} entwurf={entwurf} artikel={artikel}>
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(schema)} />
   <Header slot="header" />
   <Detail eintrag={eintrag} vorher={vorher} nachher={nachher} />

@@ -7,6 +7,7 @@ import type { ImageMetadata } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { cmsAlt, cmsBild } from '@/lib/cms-bild';
 import { projekt } from '@/projekt.config';
+import { autorSchema, schemaId, unternehmenRef } from '@/lib/schema';
 
 export type BausteinId = keyof typeof projekt.bausteine;
 export const BAUSTEIN_IDS = Object.keys(projekt.bausteine) as BausteinId[];
@@ -342,8 +343,9 @@ export async function neuesteEintraege(id: BausteinId, anzahl = 3): Promise<Eint
 
 const absolut = (pfad: string, site: URL | string) => new URL(pfad, site).href;
 
+/** Verweis auf das Unternehmen (Angaben in src/projekt.config.ts → „unternehmen“, siehe src/lib/schema.ts) */
 export function organisation(site: URL | string) {
-  return { '@type': 'Organization', name: projekt.firmenname, url: absolut('/', site) };
+  return unternehmenRef(site);
 }
 
 /** BreadcrumbList: Startseite → Übersicht → (Eintrag) */
@@ -369,10 +371,13 @@ export function brotkrumenSchema(id: BausteinId, site: URL | string, eintrag?: E
 /** Schema.org für eine Detailseite. bildUrls: absolute oder relative URLs der optimierten Bilder */
 export function eintragSchema(e: Eintrag, site: URL | string, bildUrls: string[] = []) {
   const bilder = bildUrls.map((u) => absolut(u, site));
+  const url = absolut(e.url, site);
   const basis = {
     '@context': 'https://schema.org',
+    '@id': schemaId.inhalt(url, 'inhalt'),
     name: e.titel,
-    url: absolut(e.url, site),
+    url,
+    mainEntityOfPage: { '@id': schemaId.seite(url) },
     ...(e.kurztext ? { description: e.kurztext } : {}),
     ...(bilder.length ? { image: bilder } : {}),
     ...(e.tags.length ? { keywords: e.tags.join(', ') } : {}),
@@ -385,7 +390,7 @@ export function eintragSchema(e: Eintrag, site: URL | string, bildUrls: string[]
       headline: e.titel,
       ...(e.datum ? { datePublished: datumISO(e.datum) } : {}),
       ...(e.aktualisiert || e.datum ? { dateModified: datumISO(e.aktualisiert ?? e.datum!) } : {}),
-      author: e.daten.autor ? { '@type': 'Person', name: e.daten.autor } : organisation(site),
+      author: autorSchema(e.daten.autor, site),
       publisher: organisation(site),
     };
   }
@@ -431,6 +436,7 @@ export function uebersichtSchema(id: BausteinId, site: URL | string, eintraege: 
   return {
     '@context': 'https://schema.org',
     '@type': id === 'blog' ? 'Blog' : 'CollectionPage',
+    '@id': schemaId.inhalt(absolut(baustein(id).url, site), 'uebersicht'),
     name: texte.titel,
     url: absolut(baustein(id).url, site),
     ...(texte.seoBeschreibung ? { description: texte.seoBeschreibung } : {}),

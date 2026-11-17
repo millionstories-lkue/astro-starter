@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { projekt } from '@/projekt.config';
+import { grundgeruest } from '@/lib/schema';
 
 // Schriften vorab laden (schnellerer Seitenaufbau): welche, steht in src/projekt.config.ts (schriftenVorladen)
 const schriftDateien = import.meta.glob<string>('/src/assets/fonts/*.woff2', { eager: true, query: '?url', import: 'default' });
@@ -21,12 +22,30 @@ interface Props {
   entwurf?: boolean;
   /** Sprache der Seite (z. B. 'it' oder 'en' bei mehrsprachigen Websites). Standard: Deutsch */
   lang?: string;
+  /**
+   * Für Beiträge und Projekte: Datum der Veröffentlichung bzw. Überarbeitung.
+   * Social-Media-Vorschauen zeigen die Seite dann als Artikel mit Datum.
+   */
+  artikel?: { veroeffentlicht?: Date | string; geaendert?: Date | string };
 }
 
-const { title, description, image = '/default-og.jpg', noindex = false, entwurf = false, lang = 'de' } = Astro.props;
+const { title, description, image = '/default-og.jpg', noindex = false, entwurf = false, lang = 'de', artikel } = Astro.props;
+const isoDatum = (d?: Date | string) => (d ? new Date(d).toISOString() : undefined);
+const artikelVeroeffentlicht = isoDatum(artikel?.veroeffentlicht);
+const artikelGeaendert = isoDatum(artikel?.geaendert) ?? artikelVeroeffentlicht;
 const ogLocale = ({ de: 'de_DE', it: 'it_IT', en: 'en_GB', fr: 'fr_FR' } as Record<string, string>)[lang] ?? 'de_DE';
 const sprungText = ({ de: 'Zum Inhalt springen', it: 'Vai al contenuto', en: 'Skip to content', fr: 'Aller au contenu' } as Record<string, string>)[lang] ?? 'Zum Inhalt springen';
 const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.com');
+const ogBild = new URL(image, Astro.site || Astro.url).href;
+// Strukturierte Daten: Website, Unternehmen und diese Seite (verknüpft, siehe src/lib/schema.ts).
+// „zuletzt geändert“ trägt src/integrations/sitemap.mjs nach dem Build ein.
+const schemaGrundgeruest = grundgeruest(Astro.site || Astro.url, {
+  url: canonicalURL.href,
+  titel: title,
+  beschreibung: description,
+  lang,
+  bild: ogBild,
+});
 ---
 
 <!DOCTYPE html>
@@ -46,16 +65,22 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://example.
   {entwurf ? <meta name="ms-entwurf" content="ja" /> : <link rel="canonical" href={canonicalURL} />}
 
   <!-- Open Graph / Facebook / LinkedIn -->
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content={artikel ? 'article' : 'website'} />
+  <meta property="og:site_name" content={projekt.firmenname} />
   <meta property="og:url" content={Astro.url} />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
-  <meta property="og:image" content={new URL(image, Astro.site || Astro.url)} />
+  <meta property="og:image" content={ogBild} />
   <meta property="og:locale" content={ogLocale} />
   <meta name="twitter:card" content="summary_large_image" />
+  {artikelVeroeffentlicht && <meta property="article:published_time" content={artikelVeroeffentlicht} />}
+  {artikelGeaendert && <meta property="article:modified_time" content={artikelGeaendert} />}
 
   <!-- Sitemap für Suchmaschinen -->
   {!entwurf && <link rel="sitemap" href="/sitemap.xml" />}
+
+  <!-- Strukturierte Daten: Website, Unternehmen, Seite (nicht auf 404- und noindex-Seiten) -->
+  {!noindex && <script type="application/ld+json" data-ms-grundgeruest set:html={JSON.stringify(schemaGrundgeruest)} />}
 
   <!-- Seitenspezifische Ergänzungen im <head> (z. B. JSON-LD) -->
   <slot name="head" />

@@ -4,6 +4,37 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.4.0 – 17.11.2026 · Strukturierte Daten für Google und KI-Suche verknüpft
+
+Rein technisch – sichtbar ändert sich auf der Website nichts.
+
+- **Verknüpfte strukturierte Daten (Schema.org):** Jede Seite enthält jetzt automatisch Website, Unternehmen
+  und die Seite selbst, mit festen Kennungen (`#website`, `#unternehmen`, `<adresse>#webseite`). Beiträge,
+  Projekte, Termine, Übersichten und häufige Fragen verweisen darauf (Herausgeber, Urheber, Veranstalter).
+  So erkennen Google und KI-Systeme eindeutig, wer hinter den Inhalten steht.
+- **Neu in `src/projekt.config.ts`:** `unternehmen` (Typ, Beschreibung, Logo, E-Mail, Telefon, Einzugsgebiet,
+  Profile, Adresse) und `personen` (Name, Rolle, Foto, Profile). Steht der Name einer Person genau so im
+  CMS-Feld „Autor/in“, erscheinen Rolle und Profile automatisch beim Beitrag. Ohne diese Angaben (ältere
+  Projekte) funktioniert alles wie bisher.
+- **Neu: `src/lib/schema.ts`** mit Hilfen für eigene Seiten (z. B. Leistungsseiten, Team auf der Startseite):
+  `unternehmenRef()`, `unternehmenSchema()`, `personSchema()`, `schemaId`.
+- **Sitemap mit „zuletzt geändert“ (lastmod):** Das Datum ändert sich nur, wenn sich der Inhalt einer Seite
+  wirklich ändert (Titel, Beschreibung oder Hauptbereich) – nicht bei Änderungen an Kopf-, Fußbereich oder
+  Gestaltung. Dasselbe Datum steht als „dateModified“ in den strukturierten Daten der Seite. Der Stand liegt
+  im Bilder-Zwischenspeicher und als `/seitenstand.json` auf der Website.
+- **Social-Media-Vorschauen:** Website-Name (`og:site_name`); Beiträge und Projekte als Artikel mit Datum
+  (`article:published_time`, `article:modified_time`). BaseLayout hat dafür die neue, freiwillige Prop `artikel`.
+- **Häufige Fragen:** feste Kennung (`<adresse>#faq`) und Verknüpfung mit der Seite.
+
+Geänderte Dateien: `src/lib/schema.ts` (neu), `src/layouts/BaseLayout.astro`, `src/lib/bausteine.ts`,
+`src/integrations/sitemap.mjs`, `src/pages/[bereich]/[eintrag].astro`, `src/components/Faq.astro`,
+`src/projekt.config.ts`, `package.json`, `CHANGELOG.md`.
+Kundenprojekte nachziehen: alle Dateien außer `projekt.config.ts` und `Faq.astro` übernehmen; in der
+eigenen `projekt.config.ts` die Blöcke `unternehmen` und `personen` ergänzen und in der eigenen `Faq.astro`
+die zwei Zeilen `@id` und `isPartOf` im Schema. Gibt die Startseite schon selbst ein Unternehmen aus
+(Organization/LocalBusiness), diese Angaben in `unternehmen` übernehmen und auf der Startseite entfernen
+oder per `@id` auf `#unternehmen` verweisen – sonst gibt es das Unternehmen doppelt.
+
 ## 1.3.0 – 16.11.2026 · Mediathek: Bildbeschreibungen in allen Sprachen
 
 - **Mehrsprachige Bildbeschreibungen in der Mediathek:** Ist die Website mehrsprachig (`i18n` mit `locales` in

@@ -10,11 +10,71 @@
  * (Astro.redirect / meta refresh) und Entwürfe (Vorschau-Adresse, siehe entwuerfe.mjs). Sonst meldet die Google Search Console
  * „Durch noindex ausgeschlossen“ bzw. „Seite mit Weiterleitung“.
  *
+ * „Zuletzt geändert“ (lastmod): Für jede Seite wird ein Fingerabdruck des Inhalts (Titel, Beschreibung,
+ * Hauptbereich <main>) gebildet. Nur wenn sich der Inhalt wirklich ändert, bekommt die Seite das heutige
+ * Datum – Änderungen an Kopf- oder Fußbereich, Gestaltung oder Bilddateinamen zählen nicht. Der Stand
+ * wird im Zwischenspeicher (.astro-cache/seitenstand.json) und als dist/seitenstand.json gespeichert;
+ * fehlt der Zwischenspeicher, wird der Stand der veröffentlichten Website geladen.
+ * Dasselbe Datum steht als „dateModified“ in den strukturierten Daten der Seite (WebPage, src/lib/schema.ts).
+ *
  * Voraussetzung: `site` ist in astro.config.mjs auf die echte Domain gesetzt
  * (steht dort noch die Platzhalter-Domain, erscheint beim Build eine Warnung).
  * Diese Datei ist Teil des Starter-Repos – nicht verändern.
  */
-import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const sha = (text) => createHash('sha256').update(text).digest('hex');
+const heute = () => new Date().toISOString().slice(0, 10);
+
+/** Fingerabdruck des Inhalts: Titel, Beschreibung und <main> – ohne Dateinamen-Stempel und Gestaltungs-Kennungen */
+function inhaltFingerabdruck(html) {
+  const titel = html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? '';
+  const beschreibung = html.match(/<meta name="description" content="([^"]*)"/i)?.[1] ?? '';
+  const main = html.match(/<main[\s\S]*?<\/main>/i)?.[0] ?? html;
+  const ohneStempel = main
+    .replace(/\/_astro\/[^"'\s),]+/g, '/_astro/x')
+    .replace(/\s?data-astro-[a-z-]+(="[^"]*")?/g, '')
+    .replace(/\bastro-[a-z0-9]{8}\b/g, '')
+    .replace(/\bfotos-[a-z0-9]{6}\b/g, 'fotos')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/\s+/g, ' ');
+  return sha(`${titel}|${beschreibung}|${ohneStempel}`);
+}
+
+/** Stand des letzten Builds: zuerst Zwischenspeicher, sonst die veröffentlichte Website */
+async function vorigerStand(standDatei, basis, logger) {
+  try {
+    return JSON.parse(await readFile(standDatei, 'utf8'));
+  } catch {}
+  if (/kundendomain|example\.com/i.test(basis)) return null;
+  try {
+    const antwort = await fetch(`${basis}/seitenstand.json`, { signal: AbortSignal.timeout(8000) });
+    if (antwort.ok) return await antwort.json();
+  } catch {}
+  logger.info('Sitemap: kein früherer Stand gefunden – alle Seiten bekommen das heutige Datum.');
+  return null;
+}
+
+/** „dateModified“ in das Grundgerüst der strukturierten Daten eintragen (BaseLayout, data-ms-grundgeruest) */
+function datumEintragen(html, datum) {
+  return html.replace(
+    /(<script type="application\/ld\+json" data-ms-grundgeruest[^>]*>)([\s\S]*?)(<\/script>)/,
+    (ganz, anfang, json, ende) => {
+      try {
+        const daten = JSON.parse(json);
+        const seite = daten['@graph']?.find((x) => x['@type'] === 'WebPage');
+        if (!seite) return ganz;
+        seite.dateModified = datum;
+        return anfang + JSON.stringify(daten).replace(/</g, '\\u003c') + ende;
+      } catch {
+        return ganz;
+      }
+    },
+  );
+}
 
 const NOINDEX = /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i;
 const WEITERLEITUNG = /<meta[^>]+http-equiv=["']refresh["']/i;
@@ -23,12 +83,14 @@ const AUSGESCHLOSSEN = /^(404|500)\/?$/;
 
 export default function sitemap() {
   let site;
+  let cacheDir;
 
   return {
     name: 'starter-sitemap',
     hooks: {
       'astro:config:done': ({ config }) => {
         site = config.site;
+        cacheDir = config.cacheDir;
       },
 
       'astro:build:done': async ({ dir, pages, logger }) => {
@@ -45,28 +107,57 @@ export default function sitemap() {
         const alle = [...new Set(pages.map((p) => p.pathname))].filter((p) => !AUSGESCHLOSSEN.test(p));
         const ausgelassen = [];
         const pfade = [];
+        const dateien = {};
         for (const p of alle) {
           if (p.startsWith('vorschau/')) continue;
           let html = null;
+          let datei = new URL(`${p}${p === '' || p.endsWith('/') ? '' : '/'}index.html`, dir);
           try {
-            html = await readFile(new URL(`${p}${p === '' || p.endsWith('/') ? '' : '/'}index.html`, dir), 'utf8');
+            html = await readFile(datei, 'utf8');
           } catch {
             try {
-              html = await readFile(new URL(p.replace(/\/$/, '') + '.html', dir), 'utf8');
+              datei = new URL(p.replace(/\/$/, '') + '.html', dir);
+              html = await readFile(datei, 'utf8');
             } catch {}
           }
           // Datei nicht (mehr) da, z. B. Entwurf, der unter die Vorschau-Adresse verschoben wurde
           if (html === null) continue;
           if (NOINDEX.test(html) || WEITERLEITUNG.test(html)) ausgelassen.push(p);
-          else pfade.push(p);
+          else {
+            pfade.push(p);
+            dateien[p] = { datei, html };
+          }
         }
         pfade.sort((a, b) => a.length - b.length || a.localeCompare(b));
 
+        // Zuletzt geändert: nur bei echter Inhaltsänderung neues Datum
+        const standOrdner = cacheDir ? fileURLToPath(cacheDir) : path.resolve('.astro-cache');
+        const standDatei = path.join(standOrdner, 'seitenstand.json');
+        const vorher = await vorigerStand(standDatei, basis, logger);
+        const stand = {};
+        let geaendert = 0;
+        for (const p of pfade) {
+          const url = `${basis}/${p}`;
+          const abdruck = inhaltFingerabdruck(dateien[p].html);
+          const alt = vorher?.seiten?.[url];
+          const datum = alt && alt.abdruck === abdruck && alt.datum ? alt.datum : heute();
+          if (!alt || alt.abdruck !== abdruck) geaendert++;
+          stand[url] = { abdruck, datum };
+          const neu = datumEintragen(dateien[p].html, datum);
+          if (neu !== dateien[p].html) await writeFile(dateien[p].datei, neu, 'utf8');
+        }
+        const standJson = JSON.stringify({ seiten: stand });
+        await writeFile(new URL('seitenstand.json', dir), standJson, 'utf8');
+        try {
+          await mkdir(standOrdner, { recursive: true });
+          await writeFile(standDatei, standJson, 'utf8');
+        } catch {}
+
         const eintraege = pfade
           .map((p) => {
-            const url = `${basis}/${p}`.replace(/&/g, '&amp;');
+            const url = `${basis}/${p}`;
             const prioritaet = p === '' ? '1.0' : '0.7';
-            return `  <url>\n    <loc>${url}</loc>\n    <priority>${prioritaet}</priority>\n  </url>`;
+            return `  <url>\n    <loc>${url.replace(/&/g, '&amp;')}</loc>\n    <lastmod>${stand[url].datum}</lastmod>\n    <priority>${prioritaet}</priority>\n  </url>`;
           })
           .join('\n');
 
@@ -92,7 +183,7 @@ export default function sitemap() {
         }
 
         logger.info(
-          `Sitemap mit ${pfade.length} Seiten erzeugt` +
+          `Sitemap mit ${pfade.length} Seiten erzeugt, ${geaendert} davon neu oder inhaltlich geändert` +
             (ausgelassen.length ? ` (${ausgelassen.length} Weiterleitungs- bzw. noindex-Seiten ausgelassen).` : '.'),
         );
       },
