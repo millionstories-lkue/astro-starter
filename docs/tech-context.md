@@ -12,13 +12,13 @@ KURZÜBERBLICK – die Regeln, die IMMER gelten (Details in den Punkten darunter
 5. Animationen nur über transform und opacity, Daueranimationen enden nach 5 s (Punkt 11, 12).
 6. Formulare nur über Kontaktformular.astro bzw. formhub-client.js, Hub-Eintrag mitliefern (Punkt 7).
 7. CMS: pflegbare Inhalte als Dateien in src/data/, Entwürfe und Weiterleitungen sind fertig im Starter (Punkt 9).
-8. SEO/GEO und llms.txt auf jeder Seite (Punkt 10). Unternehmen und Personen einmal in src/projekt.config.ts eintragen – die strukturierten Daten aller Seiten verknüpfen sich daraus automatisch. Vor jeder ZIP die SEO-Prüfung des Builds (dist/seo-pruefung.json) ansehen: 0 Fehler. Cookie- und trackingfrei, keine externen Dienste. Nach dem Livegang übernimmt der Skill „seo-check“ (Punkt 10, „Nach dem Livegang“).
+8. SEO/GEO und llms.txt auf jeder Seite (Punkt 10). Unternehmen und Personen einmal in src/projekt.config.ts eintragen – die strukturierten Daten aller Seiten verknüpfen sich daraus automatisch. Vor jeder ZIP die SEO-Prüfung des Builds (dist/seo-pruefung.json) ansehen: 0 Fehler. Cookie- und trackingfrei, keine externen Dienste. Ca. 1 Woche nach dem Livegang der SEO-Start (Search Console, Bing, Sitemap – Punkt 10, „Nach dem Livegang“), weitere SEO-Checks nur auf Abruf (Skill „seo-check“).
 
 AUFBAU DIESES DOKUMENTS
 Teil 1 – Regeln (Nummern bleiben fest, Code und Starter-Referenz verweisen darauf):
   0 Starter-Repo und Dateiliste · 1 Deploy Now · 2 Astro- und Tailwind-Konfiguration · 3 Ordnerstruktur · 4 Bilder und Schriften
   5 BaseLayout · 6 Git · 7 Formulare · 8 ZIP-Lieferung und Checkliste · 9 CMS (9a Bausteine, 9b Ablage und Regeln,
-  9c Entwürfe, 9d Weiterleitungen und Relaunch, 9e Mediathek und Galerie, 9f Mehrsprachige Websites) · 10 SEO & GEO · 11 Barrierefreiheit · 12 Ladezeit
+  9c Entwürfe, 9d Weiterleitungen und Relaunch, 9e Mediathek und Galerie, 9f Mehrsprachige Websites) · 10 SEO & GEO (mit SEO-Prüfung, SEO-Start und SEO-Check nach dem Livegang) · 11 Barrierefreiheit · 12 Ladezeit
 Teil 2 – Nachschlagen (Vorlagen zum Kopieren):
   Anhang A public/admin/index.html · Anhang B public/admin/config.yml · Anhang C Weiterleitungen in config.yml · Anhang D .github/workflows/indexnow.yaml
 
@@ -109,7 +109,7 @@ Ausgangsinhalt aller anpassbaren Dateien: im Starter-Repo (Teil 0, „Starter-Co
 ```
   Gemessen bei ca. 900 Fotos: Bildoptimierung 4,5 Minuten ohne → 7 Sekunden mit Zwischenspeicher. Der Zwischenspeicher enthält außerdem den Stand für IndexNow und für „zuletzt geändert“ in der Sitemap (fehlt er, lädt die Sitemap den Stand von der veröffentlichten Website, /seitenstand.json). Die Datei entsteht erst, wenn das Repo mit Deploy Now verbunden ist: den Benutzer dann bitten, sie hochzuladen (Repo → Ordner .github/workflows → Datei öffnen → „Download raw file“), und sie vollständig zurückgeben. Einspielen am einfachsten im Browser: Datei in GitHub öffnen → Stift-Symbol (Edit) → gesamten Inhalt ersetzen → Commit changes (der Ordner .github ist auf dem Mac nach dem Entpacken unsichtbar).
 
-- IndexNow (IMMER, sobald das Repo mit Deploy Now verbunden ist): meldet nach jedem Veröffentlichen die neuen und geänderten Seiten an Bing & Co. (Grundlage u. a. für die ChatGPT-Suche). Der Build erzeugt /indexnow.json und die Schlüssel-Datei automatisch (src/integrations/indexnow.mjs). Zusätzlich eine eigene Datei .github/workflows/indexnow.yaml mit dem Inhalt aus Anhang D anlegen lassen (nur DOMAIN durch die Domain aus `site` ersetzen). Anleitung für den Benutzer: im Repo Add file → Create new file, als Namen `.github/workflows/indexnow.yaml` eintragen, Inhalt einfügen, Commit changes. Nach dem Verbinden der endgültigen Domain einmal unter Actions → „IndexNow melden“ → Run workflow starten (meldet alle Seiten). Kontrolle in den Bing Webmaster Tools unter „IndexNow“.
+- IndexNow (IMMER, sobald das Repo mit Deploy Now verbunden ist): meldet nach jedem Veröffentlichen die neuen und geänderten Seiten an Bing & Co. (Grundlage u. a. für die ChatGPT-Suche). Der Build erzeugt /indexnow.json und die Schlüssel-Datei automatisch (src/integrations/indexnow.mjs). Zusätzlich eine eigene Datei .github/workflows/indexnow.yaml mit dem Inhalt aus Anhang D anlegen lassen (nur DOMAIN durch die Domain aus `site` ersetzen). Anleitung für den Benutzer: im Repo Add file → Create new file, als Namen `.github/workflows/indexnow.yaml` eintragen, Inhalt einfügen, Commit changes. Nach dem Verbinden der endgültigen Domain einmal unter Actions → „IndexNow melden“ → Run workflow starten (meldet alle Seiten) – gehört zum SEO-Start (Punkt 10, „Nach dem Livegang“). Kontrolle in den Bing Webmaster Tools unter „IndexNow“.
 
 # 2. Astro- und Tailwind-Konfiguration (astro.config.mjs, tailwind.config.mjs, global.css)
 - Output Mode: `output: 'static'` (Default für SSG)
@@ -119,7 +119,7 @@ Ausgangsinhalt aller anpassbaren Dateien: im Starter-Repo (Teil 0, „Starter-Co
   "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["src/*"] } }
 - Trailing Slash Handling: Default (`ignore` oder `never`).
 
-astro.config.mjs: exakt wie in der Starter-Referenz (site, output 'static', cacheDir './.astro-cache', build.inlineStylesheets: 'always', Integrationen tailwind(), entwuerfe(), weiterleitungen(), sitemap(), bilderAufraeumen(), indexnow()) – nur `site` anpassen. build.inlineStylesheets: 'always' beibehalten – CSS steht dann direkt in der Seite (Punkt 12).
+astro.config.mjs: exakt wie in der Starter-Referenz (site, output 'static', cacheDir './.astro-cache', build.inlineStylesheets: 'always', Integrationen tailwind(), entwuerfe(), weiterleitungen(), sitemap(), bilderAufraeumen(), indexnow(), seoPruefung()) – nur `site` anpassen. build.inlineStylesheets: 'always' beibehalten – CSS steht dann direkt in der Seite (Punkt 12).
 
 Wichtig zu global.css: Im Starter ist Tailwind 3 (über @astrojs/tailwind) installiert. `@layer base` / `@layer components` in global.css führt dort zu einem Build-Fehler, weil die @tailwind-Direktiven in einer anderen Datei stehen. Eigene Komponenten-Klassen (z. B. .btn) deshalb ohne @layer schreiben. Nur wenn ein bestehendes Design zwingend @layer braucht (z. B. Übernahme eines Projekts mit Tailwind 4): in astro.config.mjs `tailwind({ applyBaseStyles: false })` setzen und in global.css oben `@tailwind base; @tailwind components; @tailwind utilities;` ergänzen.
 Fehlermeldung „The deployment is larger than the allowed quota“ in Deploy Now: Die Website ist zu groß für das Paket. Erst prüfen, ob bilderAufraeumen() eingebunden ist; sonst Galerie-Bildgrößen verringern oder das Deploy-Now-Paket erweitern.
@@ -294,7 +294,7 @@ Komponenten in src/components/bausteine/ (anpassbar, Props beibehalten; vollstä
 - Fotos.astro – Props { fotos, ueberschrift? }: Raster + Großansicht (<dialog>)
 - NeuesteEintraege.astro – Props { baustein, anzahl?, ueberschrift?, einleitung? }
 Daten eines Eintrags (Typ Eintrag aus @/lib/bausteine): baustein, slug, url, titel, kurztext, tags[], titelbild (ImageMetadata, sonst erstes Foto), titelbildAlt, fotos[{src, alt}] (Alt-Text automatisch, wenn leer), datum, aktualisiert, termin { beginn, ende, ganztaegig, vergangen, abgesagt, text (z. B. „Sa, 21.11.2026, 10:00–16:30 Uhr“), endetUm }, daten (alle Rohfelder, z. B. daten.kunde, daten.ortName, daten.preis, daten.anmeldeLink), eintrag (für render()).
-Hilfsfunktionen aus @/lib/bausteine: aktiveBausteine(), baustein(id), uebersichtTexte(id), getEintraege(id), neuesteEintraege(id, n), tagListe(id), tagKennung(tag), absaetze(text), datumDE(date), datumISO(date), zeitISO(zeit, ganztaegig).
+Hilfsfunktionen aus @/lib/bausteine: aktiveBausteine(), baustein(id), uebersichtTexte(id), getEintraege(id), neuesteEintraege(id, n), tagListe(id), tagKennung(tag), absaetze(text), datumDE(date), datumISO(date), zeitISO(zeit, ganztaegig); ab 1.5.0 seoTitel(eintrag), seoBeschreibung(eintrag), kuerzen(text, max), preisAusText(text) – auch für eigene Sammlungen (Punkt 10).
 src/styles/bausteine.css: Gestaltung des Fließtexts (.inhalt), der Großansicht und [hidden] – darf angepasst werden (vollständige Datei).
 Fotoraster (eigene Galerien): Masonry nie mit CSS columns bauen (Reihenfolge läuft dann spaltenweise und weicht von der CMS-Reihenfolge ab), sondern als Grid in Lesereihenfolge (z. B. grid-auto-rows: 4px und per Skript grid-row-end: span N nach Seitenverhältnis).
 Keine zufälligen Kennungen (Math.random) in Seiteninhalten – sie ändern sich bei jedem Build und lassen „zuletzt geändert“ (Punkt 10) springen; stattdessen feste oder aus dem Inhalt abgeleitete ids (Fotos.astro des Starters ist dafür berücksichtigt).
@@ -354,7 +354,7 @@ Relaunch mit neuen Adressen: Alte URLs der bisherigen Seite IMMER auf die neuen 
 ## 9e. Mediathek, Galerie-Feld und Hinweise für Erklärungen
 Mediathek (public/admin/mediathek.js im Starter, IMMER bei CMS; in config.yml `media_library: { name: mediathek }` wie in der Vorlage):
 - Eine Bildverwaltung für die ganze Website: Menüpunkt „Medien“, jedes Bildfeld (widget: image – die Mediathek ersetzt Decaps Bildfeld und Bilder-Fenster) und der Knopf „Aus Mediathek wählen“ im Galerie-Feld.
-- Zeigt alle Bilder unter src/assets/cms/ inkl. Unterordnern, mit Suche, Ordner-Filter und „Nur nicht verwendete“. Bilder des gerade geöffneten Eintrags stehen oben.
+- Zeigt alle Bilder unter src/assets/cms/ inkl. Unterordnern, mit Suche, Ordner-Filter, „Nur nicht verwendete“ und (ab 1.5.0) „Nur ohne Beschreibung“; verwendete Bilder ohne Beschreibung tragen die Marke „ohne Beschreibung“. Bilder des gerade geöffneten Eintrags stehen oben.
 - Hochladen (mehrere, auch per Ziehen): neue Bilder landen im media_folder der Sammlung (z. B. src/assets/cms/portfolio/<eintrag>/), sonst im Hauptordner. Nur Bilder über 2560 px werden verkleinert (auf 2560 px, scharf auch auf hochauflösenden Bildschirmen); kleinere bleiben unverändert, PNG bleibt PNG (keine doppelte Komprimierung).
 - Zeigt bei jedem Bild, wo es verwendet wird (alle Dateien unter src/ außer src/assets sowie gerade geöffnete, ungespeicherte Felder). Löschen nur für nicht verwendete Bilder, mit Rückfrage „Endgültig löschen?“; die Datei wird aus dem Repo entfernt.
 - Beschreibung (Alt-Text) pro Bild NUR hier, zentral in src/data/medien.json ({ "alt": { "src/assets/cms/…": "…" } }, mehrsprachig zusätzlich "alt_sprachen", Punkt 9f); sie gilt überall, wo das Bild eingesetzt ist. Die Website liest sie über cmsAlt(). Die Datei entsteht beim ersten Speichern – nicht vorab anlegen. Ältere, direkt am Bild gespeicherte Beschreibungen zeigt die Mediathek als Vorschlag; „Bisherige Beschreibungen übernehmen“ überträgt sie mit einem Klick. `alt_texte: false` blendet die Beschreibungen aus (nur für Projekte, deren Code cmsAlt() noch nicht nutzt).
@@ -366,7 +366,8 @@ Galerie-Feld (widget: galerie, aus public/admin/galerie-widget.js im Starter):
 - Speichert eine Liste aus { bild, alt }. Ordner der Fotos: <ordner>/<dateiname-des-eintrags>/ (Feld-Option „ordner“) – passend zu media_folder der Sammlung.
 
 Gut zu wissen (für Erklärungen an den Benutzer):
-- „Medien“ oben im CMS öffnet die Mediathek mit allen Bildern der Website. Dort Beschreibungen vergeben und nicht mehr verwendete Bilder löschen.
+- „Medien“ oben im CMS öffnet die Mediathek mit allen Bildern der Website. Dort Beschreibungen vergeben (Filter „Nur ohne Beschreibung“ zeigt, was fehlt – wichtig für Google und Screenreader) und nicht mehr verwendete Bilder löschen.
+- Unter „Titel für Google“, „Beschreibung für Google“ und „Kurzbeschreibung“ zählt das CMS die Zeichen mit: grün = passt, orange = Google schneidet ab.
 - Entfernen aus einem Feld (× bzw. „Entfernen“) nimmt das Bild nur aus dem Eintrag; die Datei bleibt in der Mediathek, bis sie dort gelöscht wird. Ein Bild, das noch irgendwo verwendet wird, lässt sich nicht löschen – die Mediathek zeigt, wo es steckt.
 - Gelöschte Bilder bleiben im Verlauf von GitHub erhalten (Wiederherstellung über GitHub möglich), sind aber auf der Website und im CMS weg.
 - Nach Änderungen an den CMS-Skripten: CMS einmal mit Cmd + Shift + R (Mac) bzw. Strg + F5 (Windows) neu laden.
@@ -439,9 +440,32 @@ SEO-Prüfung beim Build (ab Starter 1.5.0, automatisch – src/integrations/seo-
 - Vor jeder Lieferung: Build laufen lassen, Fehler beheben (Ziel 0), Hinweise prüfen.
 - Bei bestehenden Kundenseiten zuerst https://<domain>/seo-pruefung.json lesen – sie zeigt auch Probleme, die durch Inhalte aus dem CMS entstanden sind.
 
-Nach dem Livegang (Skill „seo-check“):
-- Search Console, Bing Webmaster Tools, Sitemap einreichen und der erste Check laufen über den Skill „seo-check“ (Befehl „seo-start“, ca. 1 Woche nach dem Livegang). Weitere Checks nur auf Abruf („seo-check“), z. B. nach 3 Monaten und dann alle 6 Monate bei Kunden, die laufend optimiert werden – nicht automatisch.
-- Außerhalb der Website (gehört zum Check, nicht zum Code): Google-Unternehmensprofil gepflegt, Name/Adresse/Telefon überall gleich wie in projekt.config.ts, Einträge in wichtigen Branchenverzeichnissen, Erwähnungen und Links von Partnern, Verbänden und lokaler Presse.
+Nach dem Livegang: SEO-Start (einmal) und SEO-Check (auf Abruf):
+Ablauf und Bericht macht der Skill „seo-check“ – die Regeln dafür stehen hier, damit sie mit jedem Kunden-Repo mitkommen. Nichts davon läuft automatisch; Claude schlägt den nächsten Termin nur vor.
+
+SEO-Start (Befehl „seo-start“, ca. 1 Woche nach dem Livegang, sobald die endgültige Domain verbunden ist):
+1. Live-Grundcheck: https://<domain>/robots.txt (Zeile „Sitemap:“, kein Disallow für Inhalte), /sitemap.xml (alle wichtigen Seiten, keine alten oder Vorschau-Adressen), /seo-pruefung.json (0 Fehler), /llms.txt (Kopf, Seiten und Kontakt ausgefüllt). Weiterleitungen prüfen: http → https, mit/ohne www auf eine Fassung (wie `site`), alte Adressen vom Relaunch (Punkt 9d).
+2. Strukturierte Daten: Startseite und je eine Beitrags-, Termin- bzw. Projektseite im Rich-Results-Test (search.google.com/test/rich-results). Fehler beheben, Warnungen nur, wenn die Angabe sichtbar auf der Seite steht (Punkt 10, „Alle Angaben im JSON-LD …“).
+3. Ladezeit: PageSpeed Insights mobil für die Startseite, Ziel ≥ 95 (Punkt 12).
+4. Google Search Console (search.google.com/search-console):
+   - Property-Typ „Domain“ (gilt für www, ohne www, http und https). Bestätigung per TXT-Eintrag bei IONOS: Domains & SSL → Domain auswählen → DNS → Eintrag hinzufügen → TXT, Hostname @, Wert aus der Search Console kopieren → Speichern. Danach in der Search Console „Bestätigen“ (kann bis zu einer Stunde dauern). Den TXT-Eintrag nie wieder löschen – sonst verliert das Konto den Zugriff.
+   - Claude kann das im Browser übernehmen; vor dem Speichern des DNS-Eintrags immer kurz bestätigen lassen. Andere DNS-Einträge nie ändern.
+   - Inhaberschaft klären: Property im Google-Konto von Millionstories oder des Kunden, die andere Seite über Einstellungen → Nutzer und Berechtigungen als Nutzer hinzufügen. In der Kundenakte festhalten.
+   - Sitemaps → https://<domain>/sitemap.xml einreichen. Startseite und die 3–5 wichtigsten Seiten über „URL-Prüfung“ → „Indexierung beantragen“ anstoßen.
+   - Relaunch: Gab es für die alte Website schon eine Property, die alte behalten (Verlauf) und die alten Adressen in der URL-Prüfung stichprobenartig prüfen – sie müssen auf die neuen Seiten weiterleiten.
+5. Bing Webmaster Tools (bing.com/webmasters): „Aus der Google Search Console importieren“ (übernimmt Bestätigung und Sitemap). Danach im Kunden-Repo Actions → „IndexNow melden“ → Run workflow (meldet alle Seiten, Punkt 1). Bing ist Grundlage u. a. für die ChatGPT-Suche und Copilot.
+6. Google-Unternehmensprofil (bei lokalem Geschäft): Name, Adresse, Telefon genau wie in src/projekt.config.ts und im Impressum, Website-Link auf die neue Domain, passende Hauptkategorie, Leistungen, Öffnungszeiten. Abweichungen auflisten – das Profil pflegt der Kunde bzw. die Benutzerin selbst. Den Profil-Link in unternehmen.profile und sichtbar auf der Website (z. B. „Google-Bewertungen“ im Footer) prüfen.
+7. Abschluss: kurze Liste erledigt/offen in einfacher Sprache. In der Kundenakte (Abschnitt „Website“) eine Zeile „SEO-Start am <Datum>, Search Console: <Konto>“. Den ersten SEO-Check nach ca. 3 Monaten vorschlagen.
+Normal in den ersten Wochen (kein Fehler): „Gefunden – zurzeit nicht indexiert“, „Seite mit Weiterleitung“ für http://, www. oder Adressen ohne Schrägstrich, „Durch noindex ausgeschlossen“ für /404 und /admin/.
+
+SEO-Check (Befehl „seo-check“, nur auf Abruf – z. B. nach 3 Monaten, danach alle 6 Monate bei Kunden mit laufender Optimierung):
+- Daten: /seo-pruefung.json und sitemap.xml der Live-Website, Search Console der letzten 3 Monate im Vergleich zum Zeitraum davor (Leistung: Suchanfragen und Seiten; Seitenindexierung) – im Browser oder als Export (Leistung → Exportieren), PageSpeed mobil, 10 typische Kundenfragen in Websuche bzw. ChatGPT/Perplexity (wird der Kunde genannt, wer stattdessen, welche Quellen).
+- Größte Hebel: Suchbegriffe auf Position 8–20 mit spürbaren Impressionen (die passende Seite gezielt ausbauen), Seiten mit vielen Impressionen und Klickrate unter 2 % (Titel und Beschreibung verbessern), veraltete Inhalte (Jahreszahlen, Preise, Team, Termine; wichtige Seiten mit lastmod älter als 6 Monate), fehlende FAQ, Referenzen und Bildbeschreibungen.
+- Ergebnis: Bericht von höchstens einer Seite mit den 5 wichtigsten Maßnahmen. Umgesetzt wird erst nach Freigabe – Code als ZIP (Punkt 8), CMS-Texte als fertiger Text zum Einfügen. Danach geänderte Seiten in der Search Console zur Indexierung einreichen (Bing meldet IndexNow automatisch).
+- Geduld: Rankings reagieren nach 4–8 Wochen. Dieselbe Seite nicht innerhalb von 6 Wochen erneut umbauen; Adressen nur mit Weiterleitung ändern (Punkt 9d).
+- In der Kundenakte nur eine Zeile „Letzter SEO-Check: <Datum> – <Klicks>/<Impressionen> in 3 Monaten, Ø-Position <x>“ (beim nächsten Check ersetzen) und dauerhafte Entscheidungen.
+
+Außerhalb der Website (gehört zum Check, nicht zum Code): Google-Unternehmensprofil gepflegt und Bewertungen beantwortet, Name/Adresse/Telefon überall gleich wie in projekt.config.ts, Einträge in wichtigen Branchenverzeichnissen (z. B. Gelbe Seiten, Branchen- und Kammerverzeichnisse, regionale Portale), Erwähnungen und Links von Partnern, Verbänden, Kunden und lokaler Presse. Keine gekauften Links, keine erfundenen Bewertungen.
 
 # 11. Barrierefreiheit (WCAG 2.2 AA) – IMMER, für jede Seite und Unterseite
 Ziel: Jede Website erfüllt WCAG 2.2 Stufe AA (Grundlage von BFSG/EN 301 549) – unabhängig davon, ob das BFSG für den Kunden gilt. Barrierefreiheit schränkt das Design NICHT ein: Animationen, Bildflächen, Verläufe, große Typografie bleiben möglich – sie werden nur barrierefrei umgesetzt. Der Starter bringt die Technik mit; beim Gestalten nur die Regeln unten beachten.

@@ -16,6 +16,10 @@ Formulare laufen über den Formular-Hub `https://forms.millionstories.de/`, das 
 7. **CMS (optional):** Domains in `/auth/index.php` unter `$erlaubte_websites` eintragen, Pflege unter `/admin`.
    Die CMS-Helfer (`public/admin/mediathek.js`, `public/admin/galerie-widget.js`, `src/lib/cms-bild.ts`) sind schon im Starter;
    Claude liefert pro Kunde nur `public/admin/index.html`, `public/admin/config.yml` und die Inhalte.
+8. **SEO-Start (ca. 1 Woche nach dem Livegang):** Im Claude-Projekt `seo-start` eingeben. Claude prüft die Live-Seite,
+   richtet mit dir die Google Search Console (Bestätigung per DNS-Eintrag bei IONOS) und die Bing Webmaster Tools ein,
+   reicht die Sitemap ein und vergleicht das Google-Unternehmensprofil. Später auf Abruf: `seo-check`
+   (z. B. nach 3 Monaten). Ablauf: Tech-Context Punkt 10, „Nach dem Livegang“.
 
 ## Bausteine (Portfolio, Blog, Events)
 
@@ -38,6 +42,13 @@ Ein- und ausschalten in **`src/projekt.config.ts`** (`aktiv: true`), dort auch A
   Schema.org und llms.txt werden automatisch erzeugt
 
 Änderungen später: neue ZIP von Claude im Kunden-Repo hochladen, Deploy Now veröffentlicht automatisch.
+
+## SEO & GEO – Standard für jede Seite
+
+- Seitentitel, Beschreibung, strukturierte Daten (Unternehmen, Personen, Beiträge, Termine, FAQ), Sitemap mit „zuletzt geändert“,
+  Sprachversionen (hreflang), llms.txt und IndexNow entstehen automatisch. Unternehmen und Personen einmal in `src/projekt.config.ts` eintragen.
+- Nach jedem Build steht unter `/seo-pruefung.json`, was auffällt (doppelte Titel, fehlende H1, Bilder ohne Beschreibung, kaputte Links …).
+- Regeln für Texte („Antwort zuerst“, Zahlen mit Quelle und Jahr, FAQ) und der Ablauf nach dem Livegang: Tech-Context Punkt 10.
 
 ## Barrierefreiheit (WCAG 2.2 AA) – Standard für jede Seite
 
