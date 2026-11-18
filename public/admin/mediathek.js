@@ -12,6 +12,8 @@
  *   verwendet wird, mit Rückfrage „Endgültig löschen?“
  * - zentrale Bildbeschreibung (Alt-Text) pro Bild in src/data/medien.json. Sie ist die
  *   einzige Stelle für Beschreibungen und gilt überall, wo das Bild eingesetzt ist.
+ * - Bilder ohne Beschreibung, die auf der Website verwendet werden, tragen die Marke
+ *   „ohne Beschreibung“; Filter „Nur ohne Beschreibung“ (ab Starter 1.5.0, gut für Google und Barrierefreiheit)
  * - mehrsprachige Websites (i18n in config.yml mit locales): je weitere Sprache ein eigenes
  *   Feld für die Beschreibung, gespeichert in medien.json unter „alt_sprachen“
  *   ({ "it": { "<bildpfad>": "…" }, "en": { … } }). Leer = die Website zeigt die Beschreibung
@@ -650,6 +652,7 @@
     '.mt-kachel[aria-pressed=true] .mt-haken{background:#3a69c7;border-color:#3a69c7}' +
     '.mt-marke{position:absolute;top:6px;right:6px;font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;background:rgba(0,0,0,.6);color:#fff}' +
     '.mt-marke-frei{background:#fff3cd;color:#7a5a00}' +
+    '.mt-marke-alt{top:auto;right:auto;left:6px;bottom:32px;background:#fde8e8;color:#9b1c1c}' +
     '.mt-detail{width:320px;border-left:1px solid #e3e5ea;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}' +
     '.mt-detail-bild{background:#eff0f4;border-radius:8px;height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#9aa1ad}' +
     '.mt-detail-bild img{max-width:100%;max-height:100%;object-fit:contain}' +
@@ -718,6 +721,7 @@
       suche: '',
       ordner: '',
       nurFrei: false,
+      nurOhneAlt: false,
       laeuft: false,
       wurzel: 'src/assets/cms',
       ziel: opt.ordner || null,
@@ -736,6 +740,7 @@
     var suche = el('input', { type: 'search', id: 'mt-suche', placeholder: 'Suchen …', 'aria-label': 'Bilder suchen' });
     var ordnerWahl = el('select', { 'aria-label': 'Ordner' });
     var nurFrei = el('input', { type: 'checkbox' });
+    var nurOhneAlt = el('input', { type: 'checkbox' });
     var annehmen = opt.nur === 'bilder' ? 'image/jpeg,image/png,image/webp' : opt.nur === 'dateien' ? 'application/pdf,.pdf' : 'image/jpeg,image/png,image/webp,application/pdf,.pdf';
     var dateiEingabe = el('input', { type: 'file', accept: annehmen, multiple: true, id: 'mt-datei', class: 'mt-nur-sr' });
     var zielText = el('span', { class: 'mt-ziel' });
@@ -766,6 +771,7 @@
         suche,
         ordnerWahl,
         el('label', { class: 'mt-check' }, [nurFrei, 'Nur nicht verwendete']),
+        optionen.altTexte && opt.nur !== 'dateien' ? el('label', { class: 'mt-check' }, [nurOhneAlt, 'Nur ohne Beschreibung']) : null,
         el('label', { for: 'mt-datei', class: 'mt-k mt-k-blau', tabindex: '0', role: 'button' }, [opt.nur === 'dateien' ? '+ Datei hochladen' : opt.nur === 'bilder' ? '+ Bilder hochladen' : '+ Hochladen']),
         knopfUebernahme,
         dateiEingabe,
@@ -821,6 +827,7 @@
         if (st.ordner && ordnerVon(b.pfad) !== st.ordner) return false;
         if (q && b.pfad.toLowerCase().indexOf(q) < 0 && zentralerAlt(b.pfad).toLowerCase().indexOf(q) < 0) return false;
         if (st.nurFrei && (!st.verwendung || istVerwendet(b.pfad))) return false;
+        if (st.nurOhneAlt && (istDok(b.pfad) || hatBeschreibung(b.pfad))) return false;
         return true;
       });
     }
@@ -927,6 +934,11 @@
           : el('span', { class: 'mt-bild', 'data-pfad': b.pfad, 'data-sha': b.sha || '' }, ['lädt …']);
         var verwendet = istVerwendet(b.pfad);
         var marke = st.verwendung ? (verwendet ? null : el('span', { class: 'mt-marke mt-marke-frei', text: 'nicht verwendet' })) : null;
+        // Verwendetes Bild ohne Beschreibung: Hinweis (Google und Screenreader brauchen sie)
+        var ohneAlt =
+          optionen.altTexte && !dok && altStand.geladen && !hatBeschreibung(b.pfad) && (!st.verwendung || verwendet)
+            ? el('span', { class: 'mt-marke mt-marke-alt', text: 'ohne Beschreibung' })
+            : null;
         var kachel = el(
           'button',
           {
@@ -947,7 +959,7 @@
               }
             },
           },
-          [box, el('span', { class: 'mt-haken', 'aria-hidden': 'true', text: '✓' }), marke, el('span', { class: 'mt-name', text: dateiname(b.pfad) })],
+          [box, el('span', { class: 'mt-haken', 'aria-hidden': 'true', text: '✓' }), marke, ohneAlt, el('span', { class: 'mt-name', text: dateiname(b.pfad) })],
         );
         raster.appendChild(kachel);
         if (dok) return;
@@ -1157,6 +1169,7 @@
           function () {
             meldung('Beschreibung gespeichert. Sie erscheint nach dem nächsten Veröffentlichen auf der Website.');
             knopf.disabled = false;
+            zeichneRaster();
           },
           function (f) {
             meldung('Speichern hat nicht geklappt. ' + f.message, true);
@@ -1381,6 +1394,10 @@
     ordnerWahl.addEventListener('change', function () {
       st.ordner = ordnerWahl.value;
       zeichneLeiste();
+      zeichneRaster();
+    });
+    nurOhneAlt.addEventListener('change', function () {
+      st.nurOhneAlt = nurOhneAlt.checked;
       zeichneRaster();
     });
     nurFrei.addEventListener('change', function () {

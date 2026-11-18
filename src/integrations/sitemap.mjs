@@ -17,6 +17,12 @@
  * fehlt der Zwischenspeicher, wird der Stand der veröffentlichten Website geladen.
  * Dasselbe Datum steht als „dateModified“ in den strukturierten Daten der Seite (WebPage, src/lib/schema.ts).
  *
+ * Sprachversionen (hreflang, ab Starter 1.5.0): Gibt es eine Seite in mehreren Sprachen unter gleichem
+ * Unterpfad (z. B. /kontakt/, /it/kontakt/, /en/kontakt/ – erkannt an <html lang>), werden sie automatisch
+ * verknüpft: <link rel="alternate" hreflang="…"> im Seitenkopf (plus x-default = Hauptsprache ohne Präfix)
+ * und xhtml:link in der Sitemap. Seiten, die das schon selbst im Kopf haben, bleiben unverändert.
+ * Sprachen, die noch nicht online sind (Entwürfe), sind nicht dabei.
+ *
  * Voraussetzung: `site` ist in astro.config.mjs auf die echte Domain gesetzt
  * (steht dort noch die Platzhalter-Domain, erscheint beim Build eine Warnung).
  * Diese Datei ist Teil des Starter-Repos – nicht verändern.
@@ -76,6 +82,36 @@ function datumEintragen(html, datum) {
   );
 }
 
+/** Sprache einer Seite aus <html lang="…"> (klein geschrieben, z. B. 'de', 'it', 'en-gb') */
+const spracheVon = (html) => html.match(/<html[^>]*\slang=["']([a-zA-Z-]+)["']/i)?.[1]?.toLowerCase() ?? '';
+
+/**
+ * Sprachgruppen bilden: Seiten mit Präfix /<sprache>/ gehören zur Seite ohne Präfix mit gleichem Unterpfad.
+ * Ergebnis: { pfad: [{ sprache, pfad }] } – nur für Seiten, die es in mindestens zwei Sprachen gibt.
+ */
+function sprachGruppen(pfade, dateien) {
+  const gruppen = {};
+  for (const p of pfade) {
+    const sprache = spracheVon(dateien[p].html);
+    if (!sprache) continue;
+    const kurz = sprache.split('-')[0];
+    const basis = p === kurz + '/' || p.startsWith(kurz + '/') ? p.slice(kurz.length + 1) : p;
+    const vorn = basis !== p;
+    (gruppen[basis] ??= []).push({ sprache, pfad: p, vorn });
+  }
+  const ergebnis = {};
+  for (const liste of Object.values(gruppen)) {
+    const sprachen = new Set(liste.map((x) => x.sprache));
+    // nur echte Sprachgruppen: mindestens zwei verschiedene Sprachen, jede nur einmal
+    if (sprachen.size < 2 || sprachen.size !== liste.length) continue;
+    const haupt = liste.find((x) => !x.vorn);
+    for (const x of liste) ergebnis[x.pfad] = { liste, haupt };
+  }
+  return ergebnis;
+}
+
+const HREFLANG_VORHANDEN = /<link[^>]+rel=["']alternate["'][^>]+hreflang=/i;
+
 const NOINDEX = /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i;
 const WEITERLEITUNG = /<meta[^>]+http-equiv=["']refresh["']/i;
 
@@ -134,6 +170,7 @@ export default function sitemap() {
         const standOrdner = cacheDir ? fileURLToPath(cacheDir) : path.resolve('.astro-cache');
         const standDatei = path.join(standOrdner, 'seitenstand.json');
         const vorher = await vorigerStand(standDatei, basis, logger);
+        const gruppen = sprachGruppen(pfade, dateien);
         const stand = {};
         let geaendert = 0;
         for (const p of pfade) {
@@ -143,7 +180,14 @@ export default function sitemap() {
           const datum = alt && alt.abdruck === abdruck && alt.datum ? alt.datum : heute();
           if (!alt || alt.abdruck !== abdruck) geaendert++;
           stand[url] = { abdruck, datum };
-          const neu = datumEintragen(dateien[p].html, datum);
+          let neu = datumEintragen(dateien[p].html, datum);
+          const gruppe = gruppen[p];
+          if (gruppe && !HREFLANG_VORHANDEN.test(neu)) {
+            const links =
+              gruppe.liste.map((x) => `<link rel="alternate" hreflang="${x.sprache}" href="${basis}/${x.pfad}">`).join('') +
+              (gruppe.haupt ? `<link rel="alternate" hreflang="x-default" href="${basis}/${gruppe.haupt.pfad}">` : '');
+            neu = neu.replace(/<\/head>/i, links + '</head>');
+          }
           if (neu !== dateien[p].html) await writeFile(dateien[p].datei, neu, 'utf8');
         }
         const standJson = JSON.stringify({ seiten: stand });
@@ -157,13 +201,22 @@ export default function sitemap() {
           .map((p) => {
             const url = `${basis}/${p}`;
             const prioritaet = p === '' ? '1.0' : '0.7';
-            return `  <url>\n    <loc>${url.replace(/&/g, '&amp;')}</loc>\n    <lastmod>${stand[url].datum}</lastmod>\n    <priority>${prioritaet}</priority>\n  </url>`;
+            const gruppe = gruppen[p];
+            const sprachLinks = gruppe
+              ? gruppe.liste
+                  .map((x) => `\n    <xhtml:link rel="alternate" hreflang="${x.sprache}" href="${`${basis}/${x.pfad}`.replace(/&/g, '&amp;')}"/>`)
+                  .join('') +
+                (gruppe.haupt ? `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${`${basis}/${gruppe.haupt.pfad}`.replace(/&/g, '&amp;')}"/>` : '')
+              : '';
+            return `  <url>\n    <loc>${url.replace(/&/g, '&amp;')}</loc>${sprachLinks}\n    <lastmod>${stand[url].datum}</lastmod>\n    <priority>${prioritaet}</priority>\n  </url>`;
           })
           .join('\n');
 
         const xml =
           '<?xml version="1.0" encoding="UTF-8"?>\n' +
-          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+          (Object.keys(gruppen).length
+            ? '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
+            : '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n') +
           eintraege +
           '\n</urlset>\n';
 
@@ -184,7 +237,8 @@ export default function sitemap() {
 
         logger.info(
           `Sitemap mit ${pfade.length} Seiten erzeugt, ${geaendert} davon neu oder inhaltlich geändert` +
-            (ausgelassen.length ? ` (${ausgelassen.length} Weiterleitungs- bzw. noindex-Seiten ausgelassen).` : '.'),
+            (ausgelassen.length ? ` (${ausgelassen.length} Weiterleitungs- bzw. noindex-Seiten ausgelassen)` : '') +
+            (Object.keys(gruppen).length ? `, ${Object.keys(gruppen).length} Seiten mit Sprachversionen verknüpft.` : '.'),
         );
       },
     },

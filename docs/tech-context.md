@@ -2,7 +2,7 @@
 Bei jeder Starter-Änderung mit aktualisieren. „Teil 0“ = Arbeitsweise im Skill (Starter-Code lesen, create-website, Formulare). -->
 
 Technisches Manifest & Umgebungsspezifikationen
-(Astro + IONOS Deploy Now + GitHub Workflow) · passend zu Starter-Version 1.4.0
+(Astro + IONOS Deploy Now + GitHub Workflow) · passend zu Starter-Version 1.5.0
 
 KURZÜBERBLICK – die Regeln, die IMMER gelten (Details in den Punkten darunter)
 1. Basis ist der Starter (Punkt 0). Nur anpassbare und neue Dateien liefern, immer vollständig, Ausgangscode aus dem Starter-Repo (Teil 0, „Starter-Code lesen“).
@@ -12,7 +12,7 @@ KURZÜBERBLICK – die Regeln, die IMMER gelten (Details in den Punkten darunter
 5. Animationen nur über transform und opacity, Daueranimationen enden nach 5 s (Punkt 11, 12).
 6. Formulare nur über Kontaktformular.astro bzw. formhub-client.js, Hub-Eintrag mitliefern (Punkt 7).
 7. CMS: pflegbare Inhalte als Dateien in src/data/, Entwürfe und Weiterleitungen sind fertig im Starter (Punkt 9).
-8. SEO/GEO und llms.txt auf jeder Seite (Punkt 10). Unternehmen und Personen einmal in src/projekt.config.ts eintragen – die strukturierten Daten aller Seiten verknüpfen sich daraus automatisch. Cookie- und trackingfrei, keine externen Dienste.
+8. SEO/GEO und llms.txt auf jeder Seite (Punkt 10). Unternehmen und Personen einmal in src/projekt.config.ts eintragen – die strukturierten Daten aller Seiten verknüpfen sich daraus automatisch. Vor jeder ZIP die SEO-Prüfung des Builds (dist/seo-pruefung.json) ansehen: 0 Fehler. Cookie- und trackingfrei, keine externen Dienste. Nach dem Livegang übernimmt der Skill „seo-check“ (Punkt 10, „Nach dem Livegang“).
 
 AUFBAU DIESES DOKUMENTS
 Teil 1 – Regeln (Nummern bleiben fest, Code und Starter-Referenz verweisen darauf):
@@ -40,8 +40,9 @@ Niemals mitliefern oder verändern:
 - public/admin/entwurf.html (Vorschau von Entwürfen, nur für im CMS angemeldete Personen, siehe Punkt 9c)
 - .github/workflows/entwuerfe.yaml (baut die Entwürfe und legt sie privat im Repo ab, siehe Punkt 9c)
 - src/lib/weiterleitungen.ts, src/pages/[...weiterleitung].astro, src/integrations/weiterleitungen.mjs (Weiterleitungen aus src/data/weiterleitungen/*.json, siehe Punkt 9d)
-- src/integrations/sitemap.mjs (erzeugt sitemap.xml und ergänzt robots.txt beim Build; lässt 404-, noindex- und Weiterleitungsseiten automatisch aus; ab 1.4.0 mit „zuletzt geändert“ je Seite, siehe Punkt 10; warnt, wenn `site` noch die Platzhalter-Domain ist)
+- src/integrations/sitemap.mjs (erzeugt sitemap.xml und ergänzt robots.txt beim Build; lässt 404-, noindex- und Weiterleitungsseiten automatisch aus; ab 1.4.0 mit „zuletzt geändert“ je Seite, ab 1.5.0 mit automatischer hreflang-Verknüpfung der Sprachversionen, siehe Punkt 10 und 9f; warnt, wenn `site` noch die Platzhalter-Domain ist)
 - src/integrations/indexnow.mjs (bereitet beim Build die Liste neuer/geänderter Seiten für IndexNow vor und legt die Schlüssel-Datei an; Schlüssel wird aus der Domain berechnet, siehe Punkt 1)
+- src/integrations/seo-pruefung.mjs (ab 1.5.0: prüft nach dem Build Titel, Beschreibungen, H1, Bilder ohne alt, interne Links und Platzhalter aller Seiten und schreibt das Ergebnis nach /seo-pruefung.json, siehe Punkt 10; bricht den Build nie ab)
 - src/integrations/bilder-aufraeumen.mjs (entfernt nach dem Build ungenutzte Originalbilder aus dist/_astro – sonst überschreitet die Website schnell das Speicherlimit von Deploy Now, ca. 50 MB im kleinen Paket)
 - src/lib/formhub-client.js
 - src/lib/schema.ts (ab 1.4.0: strukturierte Daten zentral und verknüpft – Website, Unternehmen, Seite, Personen; Hilfen für eigene Seiten, siehe Punkt 10)
@@ -64,7 +65,7 @@ Niemals mitliefern oder verändern:
 - public/admin/vorschau.js (nur noch für ältere Projekte ohne Mediathek – in neuen Projekten NICHT einbinden)
 
 Pro Kunde ANPASSEN (in der ZIP-Lieferung jeweils als vollständige Datei, siehe Punkt 8):
-- astro.config.mjs → `site` auf die Kundendomain setzen (Integrationen tailwind(), entwuerfe(), weiterleitungen(), sitemap(), bilderAufraeumen() und indexnow() – in dieser Reihenfolge – sowie cacheDir immer beibehalten)
+- astro.config.mjs → `site` auf die Kundendomain setzen (Integrationen tailwind(), entwuerfe(), weiterleitungen(), sitemap(), bilderAufraeumen(), indexnow() und seoPruefung() – in dieser Reihenfolge – sowie cacheDir immer beibehalten)
 - tailwind.config.mjs → CI-Farben unter `colors.brand` (DEFAULT, dark, light) und ggf. `fontFamily.sans`
 - src/styles/global.css → ggf. @font-face-Regeln für lokale Schriften (Dateien in src/assets/fonts/, Punkt 4) und eigene Klassen; die vorhandenen Barrierefreiheits-Regeln (Fokus, Formularfehler, Bewegung, „Bewegung reduzieren“, lange Wörter) IMMER beibehalten
 - src/projekt.config.ts → Firmenname, schriftenVorladen (1–2 Schriftdateien, Punkt 4), unternehmen und personen (strukturierte Daten, Punkt 10) und Schalter der Bausteine (IMMER mitliefern, Ausgangsinhalt unten)
@@ -237,7 +238,7 @@ Der Benutzer ist keine Programmiererin und arbeitet nur im Browser. Liefere Code
 - Die ZIP enthält ausschließlich neue und geänderte Dateien, in der Ordnerstruktur ab Repo-Wurzel (z. B. src/pages/index.astro, src/components/Header.astro, src/assets/images/logo.svg). KEIN übergeordneter Ordner in der ZIP – nach dem Entpacken liegen direkt src/, public/ usw. darin.
 - Jede Datei vollständig. Geänderte Starter-Dateien (astro.config.mjs, tailwind.config.mjs, src/styles/global.css) als komplette Datei mitliefern, basierend auf dem Starter-Inhalt.
 - Niemals mitliefern: die in Punkt 0 unter „Niemals mitliefern oder verändern“ genannten Dateien sowie node_modules und dist.
-- Vor dem Packen Barrierefreiheit (Punkt 11) und Ladezeit (Punkt 12) prüfen, jeweils nach dem Abschnitt „Prüfen“ dort. Erst bei 0 Fehlern liefern.
+- Vor dem Packen Barrierefreiheit (Punkt 11), Ladezeit (Punkt 12) und SEO-Prüfung (Punkt 10, dist/seo-pruefung.json) prüfen. Erst bei 0 Fehlern liefern; Hinweise der SEO-Prüfung beheben oder in der Checkliste kurz begründen (z. B. „Termin-Seite bewusst kurz“).
 - Versteckte Dateien (Name beginnt mit Punkt, z. B. public/.htaccess oder Dateien in .github/) sind auf dem Mac nach dem Entpacken unsichtbar und werden beim Hochladen oft nicht mitgenommen. Solche Dateien zusätzlich als Text in die Checkliste bzw. als <name>-inhalt.txt in die ZIP legen und erklären: im Repo Add file → Create new file → Pfad eintippen → Inhalt einfügen → Commit changes.
 - Vor dem Packen prüfen: Jeder Import zeigt auf eine Datei, die in der ZIP oder im Starter-Repo existiert (Dateiliste in Teil 0, „Starter-Code lesen“). Keine unnötigen Dateien (keine Beispiel-, Test- oder Sicherungsdateien, keine leeren Ordner außer src/assets/cms mit mindestens einem Bild).
 - Name der ZIP: <kundeId>-<inhalt>.zip, z. B. baeckerei-schmidt-startseite.zip.
@@ -250,7 +251,7 @@ Beende jede Lieferung mit einer kurzen Checkliste in einfacher Sprache:
   3. Fotos oder Schriften, die noch fehlen
   4. Ein Satz: „Entpacken, im Repo unter Add file → Upload files hineinziehen, Commit changes.“
   5. Nur bei CMS: die Zeilen für $erlaubte_websites im Anmeldedienst (auth.millionstories.de, Datei index.php: Domain mit und ohne www sowie Deploy-Now-Vorschau-Adresse) und der Hinweis, wer als Redakteur ins Repo eingeladen werden muss. CMS-Adresse: https://<kundendomain>/admin
-  6. Nach dem ersten Verbinden mit Deploy Now: um die Workflow-Datei bitten, um den Bilder-Zwischenspeicher einzubauen, und die Datei .github/workflows/indexnow.yaml mit der Kundendomain liefern (beides Punkt 1). Bei CMS prüfen, ob .github/workflows/entwuerfe.yaml im Repo ist (kommt mit dem Starter, Punkt 9c). Nach dem Livegang: Google Search Console und Bing Webmaster Tools einrichten und die Sitemap einreichen.
+  6. Nach dem ersten Verbinden mit Deploy Now: um die Workflow-Datei bitten, um den Bilder-Zwischenspeicher einzubauen, und die Datei .github/workflows/indexnow.yaml mit der Kundendomain liefern (beides Punkt 1). Bei CMS prüfen, ob .github/workflows/entwuerfe.yaml im Repo ist (kommt mit dem Starter, Punkt 9c). Nach dem Livegang: auf den Skill „seo-check“ hinweisen (Befehl „seo-start“: Search Console, Bing Webmaster Tools, Sitemap einreichen, erster Check – Punkt 10, „Nach dem Livegang“).
 Bei Fehlermeldungen aus Deploy Now: Ursache in einem Satz erklären und eine korrigierte ZIP liefern.
 Relaunch: Die alten Adressen gehören als Weiterleitungen in die erste Lieferung (Punkt 9d).
 
@@ -382,6 +383,7 @@ Getestet mit Decap 3.x (Muster: Gourmet Ladele, gourmetladele.com). Deutsch ist 
 - Starter-Texte in der Sprache der Seite: Formular-Fehlermeldungen (ab 1.2.1, formular-pruefung.ts), Sprunglink „Zum Inhalt springen“ und Menüknopf „Menü öffnen/schließen“ (ab 1.2.2, BaseLayout-Prop lang bzw. <html lang>). Für alle anderen festen Bedienwörter (Header, Footer, Status, aria-label) ein kleines Wörterbuch im Projekt; nie deutsche Texte fest in Komponenten, die auch für IT/EN genutzt werden.
 - Formulare: Eigene Texte (data-fehler, Danke-Meldung, Beschriftungen) aus dem CMS je Sprache. Die E-Mail an den Kunden behält die deutschen Feldnamen.
 - Neue Sprache vor dem Livegang prüfen: CMS-Sammlung „Sprachen online“ (eine Datei je Sprache mit Feld veroeffentlicht und vorschau_pfad 'it/'). Solange aus, sind alle Seiten der Sprache Entwürfe (Vorschau im CMS, Links darin führen weiter durch die Vorschau); einschalten = online, Sprachumschalter und hreflang erscheinen automatisch.
+- hreflang (ab Starter 1.5.0, automatisch): Der Build verknüpft alle Seiten, die es in mehreren Sprachen unter gleichem Unterpfad gibt (/kontakt/, /it/kontakt/ …, erkannt an <html lang>), im Seitenkopf (<link rel="alternate" hreflang>, x-default = Hauptsprache) und in der Sitemap. Voraussetzung: gleiche Unterpfade und BaseLayout mit lang={sprache}. Keine eigenen hreflang-Links in den Seitenkopf schreiben (Seiten, die schon welche haben, lässt der Build unverändert). Der Sprachumschalter im Header bleibt trotzdem nötig (für Menschen).
 - Bildbeschreibungen (ab Starter 1.3.0): alle Sprachen zentral in der Mediathek. Bei i18n mit locales zeigt das Bildfenster unter der deutschen Beschreibung je Sprache ein Feld; gespeichert in src/data/medien.json unter "alt_sprachen" ({ "it": { "<bildpfad>": "…" }, "en": { … } }). Im Code cmsAlt(bild, undefined, sprache) (für die Hauptsprache ohne dritte Angabe); leere Übersetzung = deutsche Beschreibung. Keine eigene Liste „Bildbeschreibungen IT/EN“ im CMS mehr anlegen.
 - Rechtstexte: je Sprache eine eigene Datei src/data/rechtstexte/<name>-<sprache>.md und eine eigene Seiten-Komponente (Rechtstext.astro des Starters ist einsprachig).
 - Übersetzung: Claude übersetzt, der Kunde liest gegen.
@@ -400,6 +402,10 @@ Technik (pro Seite):
 - Interne Links relativ (/kontakt), sprechende URLs in Kleinbuchstaben mit Bindestrich.
 - Bilder: Größenstufen, Hero-Bild (loading="eager" und fetchpriority="high") und Lazy-Loading aller anderen Bilder siehe Punkt 4. Jedes inhaltliche Bild mit beschreibendem Alt-Text (was ist zu sehen + Kontext); rein dekorative Bilder alt="".
 - Projekt-, Beitrags- und Event-Seiten: das eigene Titelbild als Social-Media-Vorschau (Prop image), sichtbares Datum („Veröffentlicht am“ bzw. „Stand“).
+- CMS-Einträge (ab 1.5.0, automatisch): Seitentitel „Titel | Firmenname“, bei mehr als 60 Zeichen nur der Titel (seoTitel(eintrag) aus @/lib/bausteine). Beschreibung = Kurzbeschreibung, sonst der Anfang des Textes ohne Zwischenüberschriften, gekürzt am Satzende (seoBeschreibung(eintrag)). Termine: Preis aus dem Feld „Preis“ („49 €“, „ab 19,50 €“, „kostenlos“) als Offer mit price/priceCurrency. Eigene Sammlungen nutzen dieselben Hilfen.
+- CMS-Hilfen (ab 1.5.0): Felder mit den Namen seoTitel, seoBeschreibung und kurztext zeigen einen Zeichenzähler (cms-anpassungen.js) – eigene Google-Felder deshalb genau so benennen. Die Mediathek markiert verwendete Bilder „ohne Beschreibung“ und hat den Filter „Nur ohne Beschreibung“.
+- Interne Verlinkung: Beiträge, Projekte und FAQ-Antworten verlinken im Text auf die passende Leistungsseite und die Kontaktseite; jede Leistungsseite ist vom Menü oder der Startseite aus mit einem Klick erreichbar. Keine Seite ohne Link von einer anderen Seite.
+- Klare Handlungsaufforderung: Jede Seite endet mit einem konkreten nächsten Schritt (z. B. „Jetzt Termin anfragen“ mit Link zum Kontakt, Telefonnummer als tel:-Link).
 - Keine Platzhalter- oder Lorem-ipsum-Texte in Seiten, die veröffentlicht werden. Beispielbeiträge im CMS mit veroeffentlicht: false anlegen.
 
 Strukturierte Daten (JSON-LD) – ab Starter 1.4.0 zentral und verknüpft (src/lib/schema.ts):
@@ -424,7 +430,18 @@ Texte (so formulieren, dass Menschen, Google und KI-Systeme die Seite verstehen 
 - Ort/Region (bei lokalem Geschäft) mindestens in H1 oder Einleitung und im Kontaktbereich nennen.
 - Expertise zeigen: echte Personen mit Rolle und Erfahrung, Referenzen, Projekte mit Aufgabe → Lösung → Ergebnis.
 - FAQ-Bereich mit 4–8 echten Kundenfragen (wenn sinnvoll), Antworten in 2–4 Sätzen.
+- Zahlen mit Bezug: Kennzahlen immer mit Jahr bzw. Stand und – wenn nicht eigene Zahlen – mit Quelle als Link (z. B. „laut Statistischem Bundesamt, 2025“). Eigene Erfahrungswerte als solche kennzeichnen („seit 2012 über 300 Projekte“).
+- Leicht zitierbar gliedern: kurze Absätze (2–4 Sätze), aussagekräftige Zwischenüberschriften (gern als Frage), Aufzählungen für Schritte und Merkmale, Tabellen für Vergleiche, Preise oder Abläufe. Im CMS-Fließtext (Markdown) gehen Zwischenüberschriften (##), Listen und Tabellen.
 - Keine erfundenen Fakten, Zahlen, Bewertungen oder Zitate. Fehlende Angaben beim Benutzer erfragen oder weglassen.
+
+SEO-Prüfung beim Build (ab Starter 1.5.0, automatisch – src/integrations/seo-pruefung.mjs):
+- Nach jedem Build steht unter https://<domain>/seo-pruefung.json, was auffällt. Fehler: Titel/Beschreibung fehlt oder doppelt, keine oder mehrere H1, Bild ohne alt, Link auf eine Seite, die es nicht gibt, Platzhaltertext, kaputtes JSON-LD. Hinweise: Titel über 60 / Beschreibung über 160 Zeichen bzw. sehr kurz, übersprungene Überschriftenebene, Link auf eine weitergeleitete Adresse, automatische Bildbeschreibung („… – Foto 3 von 12“), wenig Text (unter 150 Wörter; nicht Startseite, Übersichten, Rechtstexte).
+- Vor jeder Lieferung: Build laufen lassen, Fehler beheben (Ziel 0), Hinweise prüfen.
+- Bei bestehenden Kundenseiten zuerst https://<domain>/seo-pruefung.json lesen – sie zeigt auch Probleme, die durch Inhalte aus dem CMS entstanden sind.
+
+Nach dem Livegang (Skill „seo-check“):
+- Search Console, Bing Webmaster Tools, Sitemap einreichen und der erste Check laufen über den Skill „seo-check“ (Befehl „seo-start“, ca. 1 Woche nach dem Livegang). Weitere Checks nur auf Abruf („seo-check“), z. B. nach 3 Monaten und dann alle 6 Monate bei Kunden, die laufend optimiert werden – nicht automatisch.
+- Außerhalb der Website (gehört zum Check, nicht zum Code): Google-Unternehmensprofil gepflegt, Name/Adresse/Telefon überall gleich wie in projekt.config.ts, Einträge in wichtigen Branchenverzeichnissen, Erwähnungen und Links von Partnern, Verbänden und lokaler Presse.
 
 # 11. Barrierefreiheit (WCAG 2.2 AA) – IMMER, für jede Seite und Unterseite
 Ziel: Jede Website erfüllt WCAG 2.2 Stufe AA (Grundlage von BFSG/EN 301 549) – unabhängig davon, ob das BFSG für den Kunden gilt. Barrierefreiheit schränkt das Design NICHT ein: Animationen, Bildflächen, Verläufe, große Typografie bleiben möglich – sie werden nur barrierefrei umgesetzt. Der Starter bringt die Technik mit; beim Gestalten nur die Regeln unten beachten.
@@ -516,9 +533,9 @@ TEIL 2 – NACHSCHLAGEN: VORLAGEN
   <!-- Galerie-Feld: mehrere Fotos auf einmal hochladen, per Ziehen sortieren -->
   <script src="/admin/galerie-widget.js?v=6"></script>
   <!-- Mediathek: alle Bilder an einem Ort, für jedes Bildfeld und unter „Medien“ -->
-  <script src="/admin/mediathek.js?v=5"></script>
-  <!-- Einfacher Knopf „Speichern“, Status-Etiketten in Übersichten, Tag-Liste -->
-  <script src="/admin/cms-anpassungen.js?v=4"></script>
+  <script src="/admin/mediathek.js?v=6"></script>
+  <!-- Einfacher Knopf „Speichern“, Status-Etiketten in Übersichten, Tag-Liste, Zeichenzähler für Google-Texte -->
+  <script src="/admin/cms-anpassungen.js?v=5"></script>
   <!-- Entwürfe: Leiste unten links (Schalter „Veröffentlicht“, Vorschaulink), „Als Entwurf kopieren“ in der Übersicht, Rückfrage beim Offline-Nehmen -->
   <script src="/admin/entwuerfe.js?v=7"></script>
 </body>
@@ -728,11 +745,11 @@ collections:
       - { label: Ende, name: ende, widget: datetime, format: 'YYYY-MM-DD HH:mm', date_format: 'DD.MM.YYYY', time_format: 'HH:mm', picker_utc: false, required: false, default: '', hint: 'Optional. Bei mehrtägigen Terminen den letzten Tag eintragen.' }
       - { label: Ganztägig, name: ganztaegig, widget: boolean, default: false, required: false, hint: 'Uhrzeiten werden dann nicht angezeigt.' }
       - { label: Abgesagt, name: abgesagt, widget: boolean, default: false, required: false }
-      - { label: Kurzbeschreibung, name: kurztext, widget: text, required: false }
+      - { label: Kurzbeschreibung, name: kurztext, widget: text, required: false, hint: '1–2 Sätze: Was, für wen, wo. Erscheint in der Übersicht und bei Google.' }
       - { label: Veranstaltungsort, name: ortName, widget: string, required: false }
       - { label: Adresse, name: adresse, widget: string, required: false, hint: 'Straße Hausnummer, PLZ Ort' }
       - { label: Online-Termin, name: online, widget: boolean, default: false, required: false }   # optional
-      - { label: Preis, name: preis, widget: string, required: false, hint: 'z. B. 89 € oder kostenlos' }   # optional
+      - { label: Preis, name: preis, widget: string, required: false, hint: 'z. B. 89 €, ab 19,50 € oder kostenlos – wird so auch an Google übergeben' }   # optional
       - { label: Link zur Anmeldung, name: anmeldeLink, widget: string, required: false, hint: 'Vollständige Adresse mit https://' }   # optional
       - label: Tags   # optional
         name: tags

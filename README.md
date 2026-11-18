@@ -68,9 +68,10 @@ Der Starter ist barrierefrei aufgebaut, die Gestaltung bleibt trotzdem frei:
 - `src/lib/formhub-client.js` – Verbindung zum Formular-Hub
 - `public/.htaccess` – wie lange Browser Dateien zwischenspeichern (Ladezeit)
 - `src/lib/cms-bild.ts` – Bilder aus dem CMS für die Bildoptimierung (auch Unterordner) und zentrale Bildbeschreibungen (`cmsAlt`)
+- `src/integrations/seo-pruefung.mjs` – prüft nach dem Build Titel, Beschreibungen, Überschriften, Bilder und Links aller Seiten (Ergebnis: `/seo-pruefung.json`)
 - `src/integrations/bilder-aufraeumen.mjs` – entfernt nach dem Build ungenutzte Originalbilder (hält die Website unter dem Speicherlimit von Deploy Now)
 - `public/admin/mediathek.js` – Mediathek im CMS: alle Bilder an einem Ort (Menü „Medien“ und jedes Bildfeld), Hochladen, Beschreibungen, Löschen nur nicht verwendeter Bilder
-- `public/admin/cms-anpassungen.js` – CMS-Oberfläche: Knopf „Speichern“, Etiketten Veröffentlicht/Entwurf in den Übersichten, Feld „Tag-Liste“ (Umbenennen/Löschen wird in alle Einträge übernommen)
+- `public/admin/cms-anpassungen.js` – CMS-Oberfläche: Knopf „Speichern“, Etiketten Veröffentlicht/Entwurf in den Übersichten, Feld „Tag-Liste“ (Umbenennen/Löschen wird in alle Einträge übernommen), Zeichenzähler für Google-Texte
 - `public/admin/entwuerfe.js` – Entwürfe im CMS: Leiste unten links mit Schalter „Veröffentlicht“ und Vorschaulink, „Als Entwurf kopieren“ in der Übersicht, Rückfrage, bevor eine veröffentlichte Seite offline geht
 - `public/admin/entwurf.html` – Vorschau von Entwürfen, nur für Personen, die im CMS angemeldet sind
 - `src/integrations/entwuerfe.mjs` – entfernt Entwürfe (Schalter „Veröffentlicht“ aus) beim Build von der Website; mit ENTWURF_ABLAGE legt es sie für die Vorschau ab

@@ -18,6 +18,11 @@
  *    ohne Zwischenseite mit nur einem Eintrag. Für einen Bereich ausschalten:
  *    `direkt_oeffnen: false` in der Sammlung.
  *
+ * 5. Zeichenzähler für Google-Texte (ab Starter 1.5.0): Unter den Feldern „Titel für Google“
+ *    (seoTitel, ca. 60 Zeichen), „Beschreibung für Google“ (seoBeschreibung, ca. 155) und
+ *    „Kurzbeschreibung“ (kurztext, ca. 155) steht, wie viele Zeichen es sind – grün, solange
+ *    es passt, orange, wenn Google den Text abschneiden würde, grau bei sehr kurzen Texten.
+ *
  * Verwendung in public/admin/config.yml (Listen-Datei):
  *   - { label: Tags, name: tags, label_singular: Tag, widget: tagliste, eintraege: src/data/portfolio }
  * Benötigt mediathek.js (GitHub-Zugriff). Diese Datei ist Teil des Starter-Repos – nicht verändern.
@@ -592,6 +597,64 @@
       direktOeffnen();
     })
     .catch(function () {});
+
+  /* =====================================================================
+   * 5. Zeichenzähler für Google-Texte
+   * Decap vergibt jedem Feld die Kennung „<feldname>-field-<nummer>“. Der Zähler steht als
+   * Attribut am umgebenden Element und wird per CSS angezeigt – so stört er Decap nicht.
+   * ===================================================================== */
+  var GRENZEN = { seoTitel: [30, 60], seoBeschreibung: [70, 155], kurztext: [50, 155] };
+  var zStil = document.createElement('style');
+  zStil.textContent =
+    '[data-ms-zeichen]::after{content:attr(data-ms-zeichen);display:block;margin:4px 0 2px;font-size:12px;line-height:1.4;color:#1b7f3b}' +
+    '[data-ms-zeichen-stufe="lang"]::after{color:#b45309}[data-ms-zeichen-stufe="kurz"]::after{color:#798291}';
+  document.head.appendChild(zStil);
+  var ZAEHL_RE = new RegExp('^(' + Object.keys(GRENZEN).join('|') + ')-field-\\d+$');
+
+  function zaehlen(feld) {
+    var name = feld.id.replace(/-field-\d+$/, '');
+    var g = GRENZEN[name];
+    var box = feld.parentNode;
+    if (!g || !box) return;
+    var n = (feld.value || '').trim().length;
+    var text, stufe;
+    if (!n) {
+      text = 'Ideal: bis ca. ' + g[1] + ' Zeichen';
+      stufe = 'kurz';
+    } else if (n > g[1]) {
+      text = n + ' / ' + g[1] + ' Zeichen – Google schneidet den Rest ab, besser kürzen';
+      stufe = 'lang';
+    } else if (n < g[0]) {
+      text = n + ' / ' + g[1] + ' Zeichen – darf gern etwas ausführlicher sein';
+      stufe = 'kurz';
+    } else {
+      text = n + ' / ' + g[1] + ' Zeichen – passt';
+      stufe = 'ok';
+    }
+    if (box.getAttribute('data-ms-zeichen') !== text) box.setAttribute('data-ms-zeichen', text);
+    if (box.getAttribute('data-ms-zeichen-stufe') !== stufe) box.setAttribute('data-ms-zeichen-stufe', stufe);
+  }
+  function zaehlerAnbringen() {
+    Array.prototype.forEach.call(document.querySelectorAll('input[id*="-field-"],textarea[id*="-field-"]'), function (feld) {
+      if (!ZAEHL_RE.test(feld.id)) return;
+      if (!feld.__msZaehler) {
+        feld.__msZaehler = true;
+        feld.addEventListener('input', function () {
+          zaehlen(feld);
+        });
+      }
+      zaehlen(feld);
+    });
+  }
+  var zGeplant = false;
+  new MutationObserver(function () {
+    if (zGeplant) return;
+    zGeplant = true;
+    setTimeout(function () {
+      zGeplant = false;
+      zaehlerAnbringen();
+    }, 150);
+  }).observe(document.documentElement, { childList: true, subtree: true });
 
   var letzteAdresse = location.hash;
   function direktOeffnen() {

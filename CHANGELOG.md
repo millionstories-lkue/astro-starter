@@ -4,6 +4,40 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.5.0 – 18.11.2026 · SEO-Feinschliff: Sprachversionen, Termine, CMS-Hilfen und SEO-Prüfung
+
+Sichtbar ändert sich auf der Website nichts – nur im CMS (Zeichenzähler, Hinweise in der Mediathek).
+
+- **Sprachversionen automatisch verknüpft (hreflang):** Gibt es eine Seite in mehreren Sprachen unter gleichem
+  Unterpfad (/kontakt/, /it/kontakt/ …), verknüpft der Build sie im Seitenkopf (`<link rel="alternate" hreflang>`,
+  x-default = Hauptsprache) und in der Sitemap. Erkannt an `<html lang>`. Einsprachige Websites: keine Änderung.
+- **Termine für Google vollständig:** Der Preis aus dem Feld „Preis“ („49 €“, „ab 19,50 €“, „kostenlos“) steht jetzt
+  als Angebot mit Betrag und Währung in den strukturierten Daten – auch ohne Anmeldelink.
+- **Bessere Google-Texte bei CMS-Einträgen:** Ohne Kurzbeschreibung nimmt die Seite den Anfang des Textes (ohne
+  Zwischenüberschriften, am Satzende gekürzt) statt „Titel – Firmenname“. Ist „Titel | Firmenname“ länger als
+  60 Zeichen, steht nur der Titel im Seitentitel. Neue Hilfen `seoTitel()`, `seoBeschreibung()`, `preisAusText()`
+  in `src/lib/bausteine.ts`.
+- **CMS: Zeichenzähler** unter „Titel für Google“, „Beschreibung für Google“ und „Kurzbeschreibung“ (grün = passt,
+  orange = Google schneidet ab).
+- **Mediathek:** verwendete Bilder ohne Beschreibung tragen die Marke „ohne Beschreibung“; neuer Filter
+  „Nur ohne Beschreibung“.
+- **Neu: SEO-Prüfung beim Build** (`src/integrations/seo-pruefung.mjs`): prüft alle Seiten auf fehlende oder doppelte
+  Titel und Beschreibungen, H1, Bilder ohne alt, kaputte interne Links, Platzhaltertexte und lesbare strukturierte
+  Daten. Ergebnis unter `https://<domain>/seo-pruefung.json` und im Build-Protokoll. Bricht den Build nie ab.
+- **Anleitung (docs/tech-context.md):** Punkt 10 um Zahlen mit Quelle und Jahr, zitierbare Gliederung, interne
+  Verlinkung, Handlungsaufforderung, SEO-Prüfung und „Nach dem Livegang“ (Skill „seo-check“) ergänzt; Punkt 9f
+  hreflang; Punkt 8 Prüfung vor der Lieferung; Anhang A/B aktualisiert.
+
+Geänderte Dateien: `src/integrations/seo-pruefung.mjs` (neu), `src/integrations/sitemap.mjs`, `src/lib/bausteine.ts`,
+`src/pages/[bereich]/[eintrag].astro`, `public/admin/cms-anpassungen.js`, `public/admin/mediathek.js`,
+`astro.config.mjs`, `README.md`, `docs/tech-context.md`, `package.json`, `CHANGELOG.md`.
+Kundenprojekte nachziehen: alle Dateien außer `astro.config.mjs` übernehmen. In der eigenen `astro.config.mjs`
+die Zeile `import seoPruefung from './src/integrations/seo-pruefung.mjs';` ergänzen und `seoPruefung()` als
+letzte Integration anhängen. In `public/admin/index.html` die Versionsnummern hochzählen
+(`mediathek.js?v=6`, `cms-anpassungen.js?v=5`). Bei Terminen in `config.yml` die neuen Hinweise an
+„Kurzbeschreibung“ und „Preis“ übernehmen (Anhang B, freiwillig). Mehrsprachige Seiten mit eigenen
+hreflang-Links im Kopf: diese entfernen, damit der Build sie einheitlich setzt.
+
 ## 1.4.0 – 17.11.2026 · Strukturierte Daten für Google und KI-Suche verknüpft
 
 Rein technisch – sichtbar ändert sich auf der Website nichts.

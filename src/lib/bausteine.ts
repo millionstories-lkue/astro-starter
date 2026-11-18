@@ -344,6 +344,60 @@ export async function neuesteEintraege(id: BausteinId, anzahl = 3): Promise<Eint
 const absolut = (pfad: string, site: URL | string) => new URL(pfad, site).href;
 
 /** Verweis auf das Unternehmen (Angaben in src/projekt.config.ts → „unternehmen“, siehe src/lib/schema.ts) */
+/**
+ * Preis aus dem Freitext-Feld „Preis“ lesen (für Schema.org):
+ * „25 €“, „ab 19,50 Euro“ → 25 bzw. 19.5 · „kostenlos“, „frei“, „gratis“, „0 €“ → 0 · sonst undefined.
+ */
+export function preisAusText(text?: string | null): number | undefined {
+  const t = (text ?? '').toString().trim().toLowerCase();
+  if (!t) return undefined;
+  if (/(kostenlos|kostenfrei|gratis|eintritt frei|^frei$|free|gratuito|gratuita)/.test(t)) return 0;
+  const zahl = t.match(/(\d{1,5}(?:[.,]\d{1,2})?)/)?.[1];
+  return zahl ? Number(zahl.replace(',', '.')) : undefined;
+}
+
+/** Markdown in schlichten Text umwandeln (für Beschreibungen) */
+function nurText(md: string): string {
+  return md
+    .replace(/^---[\s\S]*?---/, '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/^\s{0,3}#{1,6}\s.*$/gm, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^\s{0,3}(>|[-*+]|\d+\.)\s+/gm, '')
+    .replace(/[*_`~|]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Text auf höchstens `max` Zeichen kürzen – möglichst am Satzende, sonst am Wortende mit „…“ */
+export function kuerzen(text: string, max = 155): string {
+  if (text.length <= max) return text;
+  const stueck = text.slice(0, max + 1);
+  const satz = Math.max(stueck.lastIndexOf('. '), stueck.lastIndexOf('! '), stueck.lastIndexOf('? '));
+  if (satz > max * 0.5) return stueck.slice(0, satz + 1);
+  return stueck.slice(0, stueck.lastIndexOf(' ', max - 1)).replace(/[,;:–-]$/, '') + ' …';
+}
+
+/**
+ * Beschreibung eines Eintrags für Google (meta description), ab Starter 1.5.0:
+ * Kurzbeschreibung aus dem CMS → sonst Anfang des Textes → sonst Termin/Titel und Firmenname.
+ */
+export function seoBeschreibung(e: Eintrag): string {
+  if (e.kurztext) return kuerzen(e.kurztext.replace(/\s+/g, ' '), 160);
+  const text = nurText((e.eintrag as any).body ?? '');
+  const davor = e.termin ? `${e.termin.text}${e.daten.ortName ? `, ${e.daten.ortName}` : ''}: ` : '';
+  if (text.length >= 40) return kuerzen(davor + text, 155);
+  return e.termin ? `${davor}${e.titel} – ${projekt.firmenname}` : `${e.titel} – ${projekt.firmenname}`;
+}
+
+/** Seitentitel eines Eintrags: „Titel | Firmenname“, bei mehr als 60 Zeichen nur der Titel */
+export function seoTitel(e: Eintrag): string {
+  const lang = `${e.titel} | ${projekt.firmenname}`;
+  return lang.length <= 60 ? lang : e.titel;
+}
+
 export function organisation(site: URL | string) {
   return unternehmenRef(site);
 }
@@ -403,6 +457,17 @@ export function eintragSchema(e: Eintrag, site: URL | string, bildUrls: string[]
       : d.ortName || d.adresse
         ? { '@type': 'Place', ...(d.ortName ? { name: d.ortName } : {}), ...(d.adresse ? { address: d.adresse } : {}) }
         : undefined;
+    // Angebot: mit Preis (falls im Feld „Preis“ eine Zahl oder „kostenlos“ steht) und/oder Anmeldelink
+    const preis = preisAusText(d.preis);
+    const angebot =
+      d.anmeldeLink || preis !== undefined
+        ? {
+            '@type': 'Offer',
+            url: d.anmeldeLink || absolut(e.url, site),
+            ...(preis !== undefined ? { price: preis, priceCurrency: 'EUR' } : {}),
+            availability: 'https://schema.org/InStock',
+          }
+        : undefined;
     return {
       ...basis,
       '@type': 'Event',
@@ -414,7 +479,7 @@ export function eintragSchema(e: Eintrag, site: URL | string, bildUrls: string[]
         : 'https://schema.org/OfflineEventAttendanceMode',
       ...(ort ? { location: ort } : {}),
       organizer: organisation(site),
-      ...(d.anmeldeLink && !t.abgesagt ? { offers: { '@type': 'Offer', url: d.anmeldeLink, availability: 'https://schema.org/InStock' } } : {}),
+      ...(angebot && !t.abgesagt ? { offers: angebot } : {}),
     };
   }
 
