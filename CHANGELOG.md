@@ -25,11 +25,13 @@ Sichtbar ändert sich auf der Website nichts – nur im CMS (Zeichenzähler, Hin
   Titel und Beschreibungen, H1, Bilder ohne alt, kaputte interne Links, Platzhaltertexte und lesbare strukturierte
   Daten. Ergebnis unter `https://<domain>/seo-pruefung.json` und im Build-Protokoll. Bricht den Build nie ab.
 - **Anleitung (docs/tech-context.md):** Punkt 10 um Zahlen mit Quelle und Jahr, zitierbare Gliederung, interne
-  Verlinkung, Handlungsaufforderung, SEO-Prüfung und „Nach dem Livegang“ (Skill „seo-check“) ergänzt; Punkt 9f
+  Verlinkung, Handlungsaufforderung, SEO-Prüfung und „Nach dem Livegang“ (Skill „seo-geo-check“) ergänzt; Punkt 9f
   hreflang; Punkt 8 Prüfung vor der Lieferung; Anhang A/B aktualisiert.
 - **SEO-Start in der Anleitung:** Punkt 10 „Nach dem Livegang“ beschreibt jetzt Schritt für Schritt den SEO-Start
   (Live-Grundcheck, Rich-Results-Test, PageSpeed, Search Console mit Bestätigung über IONOS-DNS, Sitemap, Bing-Import,
-  IndexNow, Google-Unternehmensprofil) und die Regeln für den SEO-Check auf Abruf. Punkte 1, 2, 9a und 9e ergänzt.
+  IndexNow, Google-Unternehmensprofil) und die Regeln für SEO-GEO-Check und KI-Check auf Abruf: KI-Sichtbarkeit (Top 10 aus dem Search-Console-
+  Bericht „Generative KI“ und Bings „AI Performance“) und KI-Stichprobe mit festem Fragenkatalog in ChatGPT,
+  Perplexity und Google, Verlauf im Dokument „seo-geo“ des Kundenprojekts. Punkte 1, 2, 9a und 9e ergänzt.
 
 Geänderte Dateien: `src/integrations/seo-pruefung.mjs` (neu), `src/integrations/sitemap.mjs`, `src/lib/bausteine.ts`,
 `src/pages/[bereich]/[eintrag].astro`, `public/admin/cms-anpassungen.js`, `public/admin/mediathek.js`,
