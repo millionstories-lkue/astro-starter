@@ -4,6 +4,15 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.5.2 – 19.11.2026 · Arbeitsdateien nicht bei Google
+
+- **`public/.htaccess`:** `/seo-pruefung.json`, `/seitenstand.json` und `/indexnow.json` bekommen den Header
+  `X-Robots-Tag: noindex, nofollow`. Sie bleiben lesbar (für Claude beim SEO-GEO-Check und für den nächsten Build),
+  erscheinen aber nicht in Suchergebnissen.
+
+Geänderte Dateien: `public/.htaccess`, `docs/tech-context.md`, `package.json`, `CHANGELOG.md`.
+Kundenprojekte nachziehen: `public/.htaccess` ersetzen.
+
 ## 1.5.1 – 19.11.2026 · Search Console über GitHub bestätigen
 
 - **SEO-Start ohne IONOS-Konto des Kunden:** Die Google Search Console wird jetzt immer als „URL-Präfix“ mit einer

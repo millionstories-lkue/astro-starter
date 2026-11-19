@@ -2,7 +2,7 @@
 Bei jeder Starter-Änderung mit aktualisieren. „Teil 0“ = Arbeitsweise im Skill (Starter-Code lesen, create-website, Formulare). -->
 
 Technisches Manifest & Umgebungsspezifikationen
-(Astro + IONOS Deploy Now + GitHub Workflow) · passend zu Starter-Version 1.5.1
+(Astro + IONOS Deploy Now + GitHub Workflow) · passend zu Starter-Version 1.5.2
 
 KURZÜBERBLICK – die Regeln, die IMMER gelten (Details in den Punkten darunter)
 1. Basis ist der Starter (Punkt 0). Nur anpassbare und neue Dateien liefern, immer vollständig, Ausgangscode aus dem Starter-Repo (Teil 0, „Starter-Code lesen“).
@@ -437,7 +437,7 @@ Texte (so formulieren, dass Menschen, Google und KI-Systeme die Seite verstehen 
 - Keine erfundenen Fakten, Zahlen, Bewertungen oder Zitate. Fehlende Angaben beim Benutzer erfragen oder weglassen.
 
 SEO-Prüfung beim Build (ab Starter 1.5.0, automatisch – src/integrations/seo-pruefung.mjs):
-- Nach jedem Build steht unter https://<domain>/seo-pruefung.json, was auffällt. Fehler: Titel/Beschreibung fehlt oder doppelt, keine oder mehrere H1, Bild ohne alt, Link auf eine Seite, die es nicht gibt, Platzhaltertext, kaputtes JSON-LD. Hinweise: Titel über 60 / Beschreibung über 160 Zeichen bzw. sehr kurz, übersprungene Überschriftenebene, Link auf eine weitergeleitete Adresse, automatische Bildbeschreibung („… – Foto 3 von 12“), wenig Text (unter 150 Wörter; nicht Startseite, Übersichten, Rechtstexte).
+- Nach jedem Build steht unter https://<domain>/seo-pruefung.json, was auffällt (ab 1.5.2 mit X-Robots-Tag „noindex“ über public/.htaccess – lesbar, aber nicht bei Google; ebenso seitenstand.json und indexnow.json). Fehler: Titel/Beschreibung fehlt oder doppelt, keine oder mehrere H1, Bild ohne alt, Link auf eine Seite, die es nicht gibt, Platzhaltertext, kaputtes JSON-LD. Hinweise: Titel über 60 / Beschreibung über 160 Zeichen bzw. sehr kurz, übersprungene Überschriftenebene, Link auf eine weitergeleitete Adresse, automatische Bildbeschreibung („… – Foto 3 von 12“), wenig Text (unter 150 Wörter; nicht Startseite, Übersichten, Rechtstexte).
 - Vor jeder Lieferung: Build laufen lassen, Fehler beheben (Ziel 0), Hinweise prüfen.
 - Bei bestehenden Kundenseiten zuerst https://<domain>/seo-pruefung.json lesen – sie zeigt auch Probleme, die durch Inhalte aus dem CMS entstanden sind.
 
