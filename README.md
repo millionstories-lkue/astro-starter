@@ -17,7 +17,7 @@ Formulare laufen über den Formular-Hub `https://forms.millionstories.de/`, das 
    Die CMS-Helfer (`public/admin/mediathek.js`, `public/admin/galerie-widget.js`, `src/lib/cms-bild.ts`) sind schon im Starter;
    Claude liefert pro Kunde nur `public/admin/index.html`, `public/admin/config.yml` und die Inhalte.
 8. **SEO-Start (direkt beim Livegang):** Im Claude-Projekt `seo-start` eingeben. Claude prüft die Live-Seite,
-   richtet mit dir die Google Search Console (Bestätigung per DNS-Eintrag bei IONOS) und die Bing Webmaster Tools ein,
+   richtet mit dir die Google Search Console (Bestätigung per Datei im Repo) und die Bing Webmaster Tools ein,
    reicht die Sitemap ein und vergleicht das Google-Unternehmensprofil. Bei Kunden mit SEO-Betreuung danach auf Abruf:
    `ki-check` monatlich (Stichprobe in ChatGPT, Perplexity und Google) und `seo-geo-check` alle 2 Monate (voller Bericht inkl. KI-Check). Ablauf: Tech-Context Punkt 10, „Nach dem Livegang“.
 

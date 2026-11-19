@@ -2,7 +2,7 @@
 Bei jeder Starter-Änderung mit aktualisieren. „Teil 0“ = Arbeitsweise im Skill (Starter-Code lesen, create-website, Formulare). -->
 
 Technisches Manifest & Umgebungsspezifikationen
-(Astro + IONOS Deploy Now + GitHub Workflow) · passend zu Starter-Version 1.5.0
+(Astro + IONOS Deploy Now + GitHub Workflow) · passend zu Starter-Version 1.5.1
 
 KURZÜBERBLICK – die Regeln, die IMMER gelten (Details in den Punkten darunter)
 1. Basis ist der Starter (Punkt 0). Nur anpassbare und neue Dateien liefern, immer vollständig, Ausgangscode aus dem Starter-Repo (Teil 0, „Starter-Code lesen“).
@@ -79,6 +79,7 @@ Pro Kunde ANPASSEN (in der ZIP-Lieferung jeweils als vollständige Datei, siehe 
 - public/favicon.svg → aus Logo/CI-Farbe ableiten
 - public/default-og.jpg → Vorschaubild 1200 × 630 px in CI-Farbe mit Logo bzw. Firmenname (mit Code erzeugen)
 - public/logo.png → Logo für die strukturierten Daten (PNG, mind. 112 × 112 px, quadratisch oder breit, heller Hintergrund), in projekt.config.ts unter unternehmen.logo eintragen
+- public/google<code>.html → Bestätigungsdatei der Google Search Console (ab 1.5.1, beim SEO-Start, Punkt 10): Inhalt und Dateiname genau wie von Google vorgegeben, nie wieder löschen
 - .github/workflows/<projekt>-build.yaml → entsteht erst durch Deploy Now; um den Bilder-Zwischenspeicher ergänzen (siehe Punkt 1)
 
 Neu erstellt werden: weitere Seiten in src/pages/ und weitere Komponenten in src/components/.
@@ -447,10 +448,11 @@ SEO-Start (Befehl „seo-start“, direkt beim Livegang – sobald die endgülti
 1. Live-Grundcheck: https://<domain>/robots.txt (Zeile „Sitemap:“, kein Disallow für Inhalte), /sitemap.xml (alle wichtigen Seiten, keine alten oder Vorschau-Adressen), /seo-pruefung.json (0 Fehler), /llms.txt (Kopf, Seiten und Kontakt ausgefüllt). Weiterleitungen prüfen: http → https, mit/ohne www auf eine Fassung (wie `site`), alte Adressen vom Relaunch (Punkt 9d).
 2. Strukturierte Daten: Startseite und je eine Beitrags-, Termin- bzw. Projektseite im Rich-Results-Test (search.google.com/test/rich-results). Fehler beheben, Warnungen nur, wenn die Angabe sichtbar auf der Seite steht (Punkt 10, „Alle Angaben im JSON-LD …“).
 3. Ladezeit: PageSpeed Insights mobil für die Startseite, Ziel ≥ 95 (Punkt 12).
-4. Google Search Console (search.google.com/search-console):
-   - Property-Typ „Domain“ (gilt für www, ohne www, http und https). Bestätigung per TXT-Eintrag bei IONOS: Domains & SSL → Domain auswählen → DNS → Eintrag hinzufügen → TXT, Hostname @, Wert aus der Search Console kopieren → Speichern. Danach in der Search Console „Bestätigen“ (kann bis zu einer Stunde dauern). Den TXT-Eintrag nie wieder löschen – sonst verliert das Konto den Zugriff.
-   - Claude kann das im Browser übernehmen; vor dem Speichern des DNS-Eintrags immer kurz bestätigen lassen. Andere DNS-Einträge nie ändern.
-   - Inhaberschaft klären: Property im Google-Konto von Millionstories oder des Kunden, die andere Seite über Einstellungen → Nutzer und Berechtigungen als Nutzer hinzufügen. In der Kundenakte festhalten.
+4. Google Search Console (search.google.com/search-console) – Bestätigung immer über eine Datei im Kunden-Repo, nie über das IONOS-Konto des Kunden:
+   - Property-Typ „URL-Präfix“ mit genau der Adresse aus `site` in astro.config.mjs (z. B. https://www.kunde.de – alle anderen Varianten leiten dorthin weiter).
+   - Bestätigungsmethode „HTML-Datei“: Google gibt eine Datei google<code>.html vor. Claude liefert sie unverändert (gleicher Name, gleicher Inhalt) in einer kleinen ZIP unter public/; die Benutzerin lädt sie wie gewohnt ins Kunden-Repo hoch. Nach dem Build (1–2 Minuten) prüfen, dass https://<domain>/google<code>.html den Code zeigt, dann in der Search Console „Bestätigen“.
+   - Die Datei bleibt dauerhaft im Repo (Google prüft regelmäßig nach); bei späteren ZIPs nie löschen. Die SEO-Prüfung und die Sitemap ignorieren sie.
+   - Claude kann die Schritte in der Search Console im Browser übernehmen; die Property liegt im Google-Konto von Millionstories. Soll der Kunde selbst Zugriff haben: Einstellungen → Nutzer und Berechtigungen → Kunde als Nutzer hinzufügen. In der Kundenakte festhalten.
    - Sitemaps → https://<domain>/sitemap.xml einreichen. Startseite und die 3–5 wichtigsten Seiten über „URL-Prüfung“ → „Indexierung beantragen“ anstoßen.
    - Relaunch: Gab es für die alte Website schon eine Property, die alte behalten (Verlauf) und die alten Adressen in der URL-Prüfung stichprobenartig prüfen – sie müssen auf die neuen Seiten weiterleiten.
 5. Bing Webmaster Tools (bing.com/webmasters): „Aus der Google Search Console importieren“ (übernimmt Bestätigung und Sitemap). Danach im Kunden-Repo Actions → „IndexNow melden“ → Run workflow (meldet alle Seiten, Punkt 1). Bing ist Grundlage u. a. für die ChatGPT-Suche und Copilot; der Bericht „AI Performance“ zeigt dort später die KI-Zitierungen.

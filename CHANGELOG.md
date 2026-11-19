@@ -4,6 +4,17 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.5.1 – 19.11.2026 · Search Console über GitHub bestätigen
+
+- **SEO-Start ohne IONOS-Konto des Kunden:** Die Google Search Console wird jetzt immer als „URL-Präfix“ mit einer
+  Bestätigungsdatei `public/google….html` im Kunden-Repo bestätigt (Tech-Context Punkt 10, SEO-Start Schritt 4;
+  Punkt 0 nennt die Datei bei den Dateien pro Kunde). Der TXT-Eintrag bei IONOS entfällt.
+- **SEO-Prüfung:** überspringt HTML-Dateien ohne `<html>` (z. B. die Google-Bestätigungsdatei) – vorher wurden sie
+  als Seite ohne Titel und H1 gemeldet.
+
+Geänderte Dateien: `src/integrations/seo-pruefung.mjs`, `docs/tech-context.md`, `README.md`, `package.json`, `CHANGELOG.md`.
+Kundenprojekte nachziehen: `src/integrations/seo-pruefung.mjs` ersetzen (nur nötig, wenn dort eine Google-Datei liegt).
+
 ## 1.5.0 – 18.11.2026 · SEO-Feinschliff: Sprachversionen, Termine, CMS-Hilfen und SEO-Prüfung
 
 Sichtbar ändert sich auf der Website nichts – nur im CMS (Zeichenzähler, Hinweise in der Mediathek).

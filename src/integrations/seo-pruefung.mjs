@@ -2,7 +2,7 @@
  * SEO-Prüfung beim Build (ab Starter 1.5.0)
  *
  * Prüft nach jedem Build alle Seiten, die bei Google erscheinen sollen (ohne Entwürfe,
- * Weiterleitungen, noindex-Seiten und /admin), und schreibt das Ergebnis nach
+ * Weiterleitungen, noindex-Seiten, /admin und HTML-Dateien ohne <html>, z. B. die Google-Bestätigungsdatei), und schreibt das Ergebnis nach
  * dist/seo-pruefung.json – also online unter https://<domain>/seo-pruefung.json.
  * Der Build bricht dabei nie ab; die Ergebnisse stehen zusätzlich im Build-Protokoll.
  * Der Skill „seo-check“ liest die Datei als Erstes.
@@ -97,6 +97,8 @@ export default function seoPruefung() {
           const adresse = adresseVon(datei, dist);
           if (/^\/(404|500)\/?$/.test(adresse)) continue;
           const html = await readFile(datei, 'utf8');
+          // Keine richtige Seite (z. B. Google-Bestätigungsdatei google….html aus public/) → überspringen
+          if (!/<html[\s>]/i.test(html)) continue;
           if (WEITERLEITUNG.test(html)) {
             weiterleitungen.add(adresse);
             continue;
