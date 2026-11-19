@@ -2,7 +2,7 @@
 Bei jeder Starter-Änderung mit aktualisieren. „Teil 0“ = Arbeitsweise im Skill (Starter-Code lesen, create-website, Formulare). -->
 
 Technisches Manifest & Umgebungsspezifikationen
-(Astro + IONOS Deploy Now + GitHub Workflow) · passend zu Starter-Version 1.5.2
+(Astro + IONOS Deploy Now + GitHub Workflow) · passend zu Starter-Version 1.5.3
 
 KURZÜBERBLICK – die Regeln, die IMMER gelten (Details in den Punkten darunter)
 1. Basis ist der Starter (Punkt 0). Nur anpassbare und neue Dateien liefern, immer vollständig, Ausgangscode aus dem Starter-Repo (Teil 0, „Starter-Code lesen“).

@@ -4,6 +4,15 @@ Die Versionsnummer steht auch in `package.json` („version“). So ist bei jede
 auf welchem Stand sie ist. Beim Nachziehen einer Kundenseite einfach alle Punkte seit ihrer Version übernehmen.
 Neue Einträge immer oben anfügen.
 
+## 1.5.3 – 19.11.2026 · SEO-Prüfung: Zierbilder richtig erkennen
+
+- **`src/integrations/seo-pruefung.mjs`:** Astro schreibt beim Verkleinern des HTML ein leeres `alt=""` (Zierbild)
+  als bloßes `alt`. Die Prüfung hat das als „Bild ohne alt-Angabe“ gemeldet – auf millionstories.de 62 falsche
+  Fehler. Jetzt zählt `alt` ohne Wert korrekt als leere Beschreibung.
+
+Geänderte Dateien: `src/integrations/seo-pruefung.mjs`, `docs/tech-context.md`, `package.json`, `CHANGELOG.md`.
+Kundenprojekte nachziehen: `src/integrations/seo-pruefung.mjs` ersetzen (alle Projekte ab 1.5.0).
+
 ## 1.5.2 – 19.11.2026 · Arbeitsdateien nicht bei Google
 
 - **`public/.htaccess`:** `/seo-pruefung.json`, `/seitenstand.json` und `/indexnow.json` bekommen den Header

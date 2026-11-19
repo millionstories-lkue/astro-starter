@@ -161,9 +161,10 @@ export default function seoPruefung() {
           let ohneAlt = 0;
           let autoAlt = 0;
           for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
-            const alt = m[0].match(/\salt=(["'])([\s\S]*?)\1/i);
+            // alt="…", alt='…', alt=wert oder nur alt (= leer, Zierbild – so schreibt Astro alt="" beim Verkleinern)
+            const alt = m[0].match(/\salt(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?(?=[\s>\/]|$)/i);
             if (!alt) ohneAlt++;
-            else if (AUTO_ALT.test(entities(alt[2]))) autoAlt++;
+            else if (AUTO_ALT.test(entities(alt[1] ?? alt[2] ?? alt[3] ?? ''))) autoAlt++;
           }
           if (ohneAlt) f(adresse, `${ohneAlt} Bild(er) ohne alt-Angabe.`);
           if (autoAlt) hw(adresse, `${autoAlt} Bild(er) mit automatischer Beschreibung („… – Foto 3 von 12“). In der Mediathek beschreiben, was zu sehen ist.`);
